@@ -1,0 +1,46 @@
+import { z } from 'zod';
+import type { Db } from '../../db/index.js';
+
+/**
+ * Administrator-editable settings stored in `system_settings` as JSON.
+ * Every key has a Zod schema with defaults, so a missing or partially
+ * written row always yields a complete, valid value.
+ */
+
+export const settingSchemas = {
+  registration: z
+    .object({
+      /** Allow anyone who can reach the site to create a local account. */
+      enabled: z.boolean().default(false),
+    })
+    .prefault({}),
+} as const;
+
+export type SettingKey = keyof typeof settingSchemas;
+export type SettingValue<K extends SettingKey> = z.infer<(typeof settingSchemas)[K]>;
+
+export function isSettingKey(key: string): key is SettingKey {
+  return Object.hasOwn(settingSchemas, key);
+}
+
+export class SettingsService {
+  constructor(private readonly db: Db) {}
+
+  async get<K extends SettingKey>(key: K): Promise<SettingValue<K>> {
+    const row = await this.db.selectFrom('system_settings').select('value').where('key', '=', key).executeTakeFirst();
+    const parsed = settingSchemas[key].safeParse(row?.value ?? {});
+    // A stored value that no longer validates (e.g. after an upgrade) falls back to defaults.
+    return (parsed.success ? parsed.data : settingSchemas[key].parse({})) as SettingValue<K>;
+  }
+
+  async set<K extends SettingKey>(key: K, value: unknown, updatedBy: string | null): Promise<SettingValue<K>> {
+    const parsed = settingSchemas[key].parse(value) as SettingValue<K>;
+    const json = JSON.stringify(parsed);
+    await this.db
+      .insertInto('system_settings')
+      .values({ key, value: json, updated_by: updatedBy })
+      .onConflict((oc) => oc.column('key').doUpdateSet({ value: json, updated_by: updatedBy, updated_at: new Date() }))
+      .execute();
+    return parsed;
+  }
+}

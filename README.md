@@ -19,3 +19,9 @@ mature existing implementations.
 ## Documents
 
 - [Phase 1 — Requirements, threat model and architecture](docs/phase1-architecture.md)
+
+---
+
+This repository also hosts **TeXCollab**, a self-hosted collaborative LaTeX
+editor, in [`texcollab/`](texcollab/README.md). It is independent of the
+L2 appliance work above.

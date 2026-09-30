@@ -1,0 +1,21 @@
+# Development dependencies only. Run the app itself with `npm run dev:server`
+# and `npm run dev:web` (see docs/development.md).
+name: texcollab-dev
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: texcollab
+      POSTGRES_PASSWORD: texcollab
+      POSTGRES_DB: texcollab
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - dev-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U texcollab -d texcollab"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  dev-pgdata:

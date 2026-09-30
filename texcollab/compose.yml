@@ -1,0 +1,74 @@
+# TeXCollab — Docker Compose deployment.
+# Copy .env.example to .env, fill in the secrets, then: docker compose up -d
+name: texcollab
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: texcollab
+      POSTGRES_DB: texcollab
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U texcollab -d texcollab"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: &default-logging
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  app:
+    image: ${TEXCOLLAB_IMAGE:-texcollab/app:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+      APP_SECRET_FILE: /run/secrets/app_secret
+      DB_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - app_secret
+      - db_password
+    volumes:
+      - appdata:/data
+    ports:
+      # Bound to localhost; put the reverse proxy (see compose.prod.yml) in front for TLS.
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    networks:
+      - backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging: *default-logging
+
+volumes:
+  pgdata:
+  appdata:
+
+networks:
+  backend:
+
+secrets:
+  app_secret:
+    file: ./secrets/app_secret
+  db_password:
+    file: ./secrets/db_password

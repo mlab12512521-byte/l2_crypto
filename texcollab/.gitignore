@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+/data/
+/.dev-data/
+playwright-report/
+test-results/
+.sandbox-ca.crt
+secrets/
