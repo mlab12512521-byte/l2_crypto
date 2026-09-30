@@ -128,6 +128,20 @@ describe('user management', () => {
     expect(fresh.me.user.mustChangePassword).toBe(true);
   });
 
+  it('refuses to delete users who own projects unless confirmed', async () => {
+    const u = await createUser(env.ctx);
+    const c = await login(env.app, u.username, STRONG_PASSWORD);
+    const proj = await request(env.app, c, 'POST', '/api/projects', { payload: { name: 'Owned' } });
+    const r1 = await request(env.app, admin, 'DELETE', `/api/admin/users/${u.user.id}`);
+    expect(r1.statusCode).toBe(409);
+    const r2 = await request(env.app, admin, 'DELETE', `/api/admin/users/${u.user.id}`, {
+      query: { deleteOwnedProjects: 'true' },
+    });
+    expect(r2.statusCode).toBe(204);
+    const left = await env.ctx.db.selectFrom('projects').select('id').where('id', '=', proj.json().id).execute();
+    expect(left).toEqual([]);
+  });
+
   it('never removes the last active administrator', async () => {
     const r1 = await request(env.app, admin, 'PATCH', `/api/admin/users/${adminId}`, { payload: { isAdmin: false } });
     expect(r1.statusCode).toBe(409);

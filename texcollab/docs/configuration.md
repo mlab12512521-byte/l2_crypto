@@ -46,3 +46,7 @@ Stored in the database (`system_settings`), editable under
 | Key | Default | Meaning |
 |---|---|---|
 | `registration.enabled` | `false` | Allow self-service creation of local accounts. |
+| `projectLimits.maxFileSizeMb` | `100` | Largest single uploaded file. |
+| `projectLimits.maxTextFileSizeMb` | `5` | Largest text file opened in the editor (bigger ones are stored as binary). |
+| `projectLimits.maxProjectSizeMb` | `1024` | Total size of one project's files (also caps ZIP imports by decompressed size). |
+| `projectLimits.maxEntitiesPerProject` | `5000` | Files + folders per project. |

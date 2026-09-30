@@ -44,6 +44,8 @@ export function registerAuthHooks(app: FastifyInstance, ctx: AppContext): void {
   app.decorateRequest('csrfToken', null);
 
   app.addHook('onRequest', async (req) => {
+    // Static SPA assets need no session lookup.
+    if (!req.url.startsWith('/api/') && !req.url.startsWith('/collab')) return;
     const token = req.cookies[cookieName];
     if (!token) return;
     const session = await ctx.sessions.resolve(token);

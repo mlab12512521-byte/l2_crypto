@@ -1,10 +1,13 @@
 import { randomBytes } from 'node:crypto';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { CSRF_HEADER, type MeResponse } from '@texcollab/shared';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import pg from 'pg';
 import { buildApp } from '../app.js';
 import { type AppConfig, loadConfig } from '../config.js';
-import { type AppContext, createContext } from '../context.js';
+import { type AppContext, createContext, initStorage } from '../context.js';
 import { createDb } from '../db/index.js';
 import { migrate } from '../db/migrate.js';
 import { createLogger } from '../logger.js';
@@ -33,7 +36,6 @@ export function testConfig(overrides: Record<string, string> = {}, databaseUrl =
     PUBLIC_URL,
     DATABASE_URL: databaseUrl,
     APP_SECRET: 'test-secret-test-secret-test-secret-000',
-    DATA_DIR: '/tmp/texcollab-test-unused',
     LOG_LEVEL: 'silent',
     ...overrides,
   });
@@ -48,11 +50,13 @@ export async function createTestEnv(overrides: Record<string, string> = {}): Pro
 
   const url = new URL(TEST_DATABASE_URL);
   url.pathname = `/${dbName}`;
-  const config = testConfig(overrides, url.toString());
+  const dataDir = mkdtempSync(path.join(tmpdir(), 'texcollab-data-'));
+  const config = testConfig({ DATA_DIR: dataDir, ...overrides }, url.toString());
   const log = createLogger('silent');
   const { db, pool } = createDb(config.databaseUrl, 5);
   await migrate(pool);
   const ctx = createContext(config, db, log);
+  await initStorage(ctx);
   const app = await buildApp(ctx);
   await app.ready();
 
@@ -67,6 +71,8 @@ export async function createTestEnv(overrides: Record<string, string> = {}): Pro
       await c.connect();
       await c.query(`DROP DATABASE IF EXISTS ${dbName} WITH (FORCE)`);
       await c.end();
+      const { rm } = await import('node:fs/promises');
+      await rm(dataDir, { recursive: true, force: true });
     },
   };
 }
@@ -144,4 +150,41 @@ export async function createUser(
     mustChangePassword: opts.mustChangePassword ?? false,
   });
   return { user, username, password: opts.password ?? STRONG_PASSWORD };
+}
+
+/** Create a project as `client` through the API and return its details. */
+export async function createProject(app: FastifyInstance, client: Client, name = 'Test project', template = 'article') {
+  const res = await request(app, client, 'POST', '/api/projects', { payload: { name, template } });
+  if (res.statusCode !== 201) throw new Error(`create project failed: ${res.statusCode} ${res.body}`);
+  return res.json<import('@texcollab/shared').ProjectDetails>();
+}
+
+/** Add a membership directly (the sharing API arrives in a later phase). */
+export async function addMember(ctx: AppContext, projectId: string, userId: string, role: 'editor' | 'viewer') {
+  await ctx.db
+    .insertInto('project_members')
+    .values({ project_id: projectId, user_id: userId, role, added_by: null })
+    .execute();
+}
+
+/** Upload raw bytes the way the SPA does. */
+export function upload(
+  app: FastifyInstance,
+  client: Client,
+  url: string,
+  data: Buffer | string,
+  query: Record<string, string>,
+) {
+  return app.inject({
+    method: 'POST',
+    url,
+    query,
+    headers: {
+      origin: PUBLIC_URL,
+      cookie: client.cookie,
+      [CSRF_HEADER]: client.csrf,
+      'content-type': 'application/octet-stream',
+    },
+    payload: typeof data === 'string' ? Buffer.from(data) : data,
+  });
 }

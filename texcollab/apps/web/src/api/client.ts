@@ -24,6 +24,10 @@ export function setCsrfToken(token: string | null): void {
   csrfToken = token;
 }
 
+export function getCsrfToken(): string | null {
+  return csrfToken;
+}
+
 /** Called when any request reports that the session is gone. */
 let onUnauthorized: (() => void) | null = null;
 export function setUnauthorizedHandler(fn: (() => void) | null): void {

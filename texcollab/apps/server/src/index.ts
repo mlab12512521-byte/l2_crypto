@@ -1,7 +1,7 @@
 import { buildApp } from './app.js';
 import { ensureInitialAdmin } from './bootstrap.js';
 import { loadConfig } from './config.js';
-import { createContext } from './context.js';
+import { createContext, initStorage } from './context.js';
 import { createDb } from './db/index.js';
 import { migrate } from './db/migrate.js';
 import { startBackgroundJobs } from './jobs.js';
@@ -19,6 +19,7 @@ async function main(): Promise<void> {
   }
 
   const ctx = createContext(config, db, log, ring);
+  await initStorage(ctx);
   await ensureInitialAdmin(ctx);
   const app = await buildApp(ctx);
   const stopJobs = startBackgroundJobs(ctx);

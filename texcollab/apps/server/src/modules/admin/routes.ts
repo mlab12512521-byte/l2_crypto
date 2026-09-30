@@ -161,6 +161,17 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext): Promis
     const admin = req.user!;
     const { id } = parse(idParams, req.params);
     if (id === admin.id) throw conflict('You cannot delete your own account');
+    const { deleteOwnedProjects } = parse(
+      z.object({ deleteOwnedProjects: z.enum(['true', 'false']).default('false') }),
+      req.query,
+    );
+    const owned = await ctx.projects.ownedBy(id);
+    if (owned.length > 0 && deleteOwnedProjects !== 'true') {
+      throw conflict(
+        `The user owns ${owned.length} project(s). Transfer or delete them first, or confirm deleting them together with the user.`,
+      );
+    }
+    for (const projectId of owned) await ctx.projects.delete(projectId);
     await ctx.users.delete(id);
     await audit(ctx.db, {
       actorId: admin.id,
@@ -168,6 +179,7 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext): Promis
       targetType: 'user',
       targetId: id,
       ip: req.ip,
+      details: { deletedProjects: owned.length },
     });
     reply.code(204);
   });

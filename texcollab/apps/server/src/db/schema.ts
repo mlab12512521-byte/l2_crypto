@@ -56,12 +56,76 @@ export interface AuditLogTable {
   details: ColumnType<Record<string, unknown>, string | undefined, string>;
 }
 
+export type ProjectRoleColumn = 'owner' | 'editor' | 'viewer';
+
+export interface ProjectsTable {
+  id: Generated<string>;
+  name: string;
+  main_file_id: string | null;
+  compiler: Generated<'pdflatex' | 'xelatex' | 'lualatex'>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+  last_modified_at: Generated<Date>;
+  last_modified_by: string | null;
+}
+
+export interface ProjectMembersTable {
+  project_id: string;
+  user_id: string;
+  role: ProjectRoleColumn;
+  added_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ProjectUserStateTable {
+  project_id: string;
+  user_id: string;
+  last_opened_at: Generated<Date>;
+}
+
+export interface BlobsTable {
+  hash: string;
+  size: ColumnType<number, number, number>;
+  created_at: Generated<Date>;
+}
+
+export interface ProjectEntitiesTable {
+  id: Generated<string>;
+  project_id: string;
+  parent_id: string | null;
+  kind: 'folder' | 'doc' | 'file';
+  name: string;
+  blob_hash: string | null;
+  size: ColumnType<number, number | undefined, number>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+  created_by: string | null;
+}
+
+export interface DocContentsTable {
+  entity_id: string;
+  yjs_state: Buffer | null;
+  text: string;
+  content_hash: string;
+  updated_at: Generated<Date>;
+  updated_by: string | null;
+}
+
 export interface Database {
   users: UsersTable;
   sessions: SessionsTable;
   system_settings: SystemSettingsTable;
   audit_log: AuditLogTable;
+  projects: ProjectsTable;
+  project_members: ProjectMembersTable;
+  project_user_state: ProjectUserStateTable;
+  blobs: BlobsTable;
+  project_entities: ProjectEntitiesTable;
+  doc_contents: DocContentsTable;
 }
+
+export type ProjectRow = Selectable<ProjectsTable>;
+export type EntityRow = Selectable<ProjectEntitiesTable>;
 
 export type UserRow = Selectable<UsersTable>;
 export type NewUser = Insertable<UsersTable>;

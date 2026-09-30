@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { RequireAdmin, RequireAuth } from './auth/guards';
 import { AppShell } from './components/AppShell';
+import { ProjectPage } from './features/project/ProjectPage';
 import { AccountPage } from './pages/AccountPage';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AuditPage } from './pages/admin/AuditPage';
@@ -24,6 +25,14 @@ export function App() {
         element={
           <RequireAuth>
             <ChangePasswordPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/project/:projectId"
+        element={
+          <RequireAuth>
+            <ProjectPage />
           </RequireAuth>
         }
       />

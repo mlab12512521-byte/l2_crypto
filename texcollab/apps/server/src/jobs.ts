@@ -16,5 +16,10 @@ export function startBackgroundJobs(ctx: AppContext): () => void {
     if (n > 0) ctx.log.info({ deleted: n }, 'deleted expired sessions');
   });
 
+  every(60 * 60_000, 'blob-gc', async () => {
+    const n = await ctx.files.collectGarbage(24 * 60 * 60_000);
+    if (n > 0) ctx.log.info({ deleted: n }, 'deleted unreferenced blobs');
+  });
+
   return () => timers.forEach(clearInterval);
 }

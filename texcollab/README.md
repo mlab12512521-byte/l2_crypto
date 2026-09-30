@@ -11,7 +11,7 @@ preview, project history backed by Git, and local or LDAP accounts.
 | Phase | Scope | State |
 |---|---|---|
 | 1 | Foundation: server, SPA shell, PostgreSQL, local auth, admin user management, containers | ✅ done |
-| 2 | Projects, file tree, uploads, ZIP import/export | planned |
+| 2 | Projects, file tree, uploads, ZIP import/export | ✅ done |
 | 3 | Editor | planned |
 | 4 | Sandboxed LaTeX compilation, PDF viewer | planned |
 | 5 | Real-time collaboration | planned |

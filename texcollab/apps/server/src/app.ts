@@ -7,10 +7,13 @@ import type { ApiErrorBody } from '@texcollab/shared';
 import Fastify, { type FastifyBaseLogger, type FastifyError, type FastifyInstance } from 'fastify';
 import type { AppContext } from './context.js';
 import { registerAuthHooks } from './http/auth-hooks.js';
+import { registerRawBodyParser } from './http/content.js';
 import { AppError } from './lib/errors.js';
 import { adminRoutes } from './modules/admin/routes.js';
 import { authRoutes } from './modules/auth/routes.js';
+import { fileRoutes } from './modules/files/routes.js';
 import { healthRoutes } from './modules/health/routes.js';
+import { projectRoutes } from './modules/projects/routes.js';
 
 /** Build the HTTP application. Does not listen; callers (server entry, tests) decide. */
 export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
@@ -29,10 +32,13 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
   registerSecurityHeaders(app, ctx);
   registerErrorHandling(app);
   registerAuthHooks(app, ctx);
+  registerRawBodyParser(app);
 
   await app.register(async (api) => healthRoutes(api, ctx));
   await app.register(async (api) => authRoutes(api, ctx), { prefix: '/api/auth' });
   await app.register(async (api) => adminRoutes(api, ctx), { prefix: '/api/admin' });
+  await app.register(async (api) => projectRoutes(api, ctx), { prefix: '/api/projects' });
+  await app.register(async (api) => fileRoutes(api, ctx), { prefix: '/api/projects' });
 
   await registerSpa(app, ctx);
   return app;

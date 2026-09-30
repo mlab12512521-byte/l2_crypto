@@ -14,6 +14,17 @@ export const settingSchemas = {
       enabled: z.boolean().default(false),
     })
     .prefault({}),
+  projectLimits: z
+    .object({
+      /** Largest single uploaded file. */
+      maxFileSizeMb: z.number().int().min(1).max(10_240).default(100),
+      /** Largest text file opened in the editor; bigger text files are stored as binary. */
+      maxTextFileSizeMb: z.number().int().min(1).max(50).default(5),
+      /** Total size of all files in one project. */
+      maxProjectSizeMb: z.number().int().min(1).max(102_400).default(1024),
+      maxEntitiesPerProject: z.number().int().min(10).max(100_000).default(5000),
+    })
+    .prefault({}),
 } as const;
 
 export type SettingKey = keyof typeof settingSchemas;
@@ -43,4 +54,14 @@ export class SettingsService {
       .execute();
     return parsed;
   }
+}
+
+export function limitsInBytes(l: SettingValue<'projectLimits'>) {
+  const MB = 1024 * 1024;
+  return {
+    maxFileSizeBytes: l.maxFileSizeMb * MB,
+    maxTextFileSizeBytes: l.maxTextFileSizeMb * MB,
+    maxProjectSizeBytes: l.maxProjectSizeMb * MB,
+    maxEntitiesPerProject: l.maxEntitiesPerProject,
+  };
 }
