@@ -12,3 +12,5 @@ Items knowingly deferred, with the phase expected to address them.
 | TD6 | ZIP import holds the uploaded archive in a temporary file and imports entries one quota query at a time (O(n) queries). | Adequate for thousands of files; simpler than batching. | Revisit if imports get slow |
 | TD7 | Directory upload on the client sends one request per file (max 3 concurrent). | Gives per-file progress/errors and bounded memory. | — (by design) |
 | TD8 | Upload bodies that exceed limits are drained, not aborted, so bandwidth is wasted until the reverse proxy's body limit. | Aborting resets the connection and the browser never sees the error. | Phase 10: set proxy body limit |
+| TD9 | Before phase 5, documents are saved over REST with optimistic concurrency (concurrent edits produce a visible conflict, never silent loss). | Collaboration arrives in phase 5 and replaces this path in the editor. | Phase 5 |
+| TD10 | The SPA ships as one ~870 kB (270 kB gzip) bundle. | Acceptable on a LAN; split editor/PDF code later. | Phase 9 |

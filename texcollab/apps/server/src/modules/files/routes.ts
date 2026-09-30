@@ -1,4 +1,11 @@
-import { type DocContent, entityNameSchema, extensionOf, type ProjectTree, type TreeEntity } from '@texcollab/shared';
+import {
+  type DocContent,
+  entityNameSchema,
+  extensionOf,
+  type ProjectSymbols,
+  type ProjectTree,
+  type TreeEntity,
+} from '@texcollab/shared';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { AppContext } from '../../context.js';
@@ -7,6 +14,8 @@ import { requireUser } from '../../http/auth-hooks.js';
 import { contentDisposition, inlineContentType, rawBody, USER_CONTENT_HEADERS } from '../../http/content.js';
 import { parse } from '../../http/validation.js';
 import { badRequest } from '../../lib/errors.js';
+import { snapshotProject } from './snapshot.js';
+import { collectSymbols } from './symbols.js';
 
 const projectParams = z.object({ id: z.uuid() });
 const entityParams = z.object({ id: z.uuid(), eid: z.uuid() });
@@ -56,6 +65,14 @@ export async function fileRoutes(app: FastifyInstance, ctx: AppContext): Promise
     const { id } = parse(projectParams, req.params);
     await ctx.access.require(user.id, id, 'viewer');
     return ctx.files.tree(id);
+  });
+
+  /** Labels, citation keys and file paths for editor autocompletion. */
+  app.get('/:id/symbols', async (req): Promise<ProjectSymbols> => {
+    const user = requireUser(req);
+    const { id } = parse(projectParams, req.params);
+    await ctx.access.require(user.id, id, 'viewer');
+    return collectSymbols(await snapshotProject(ctx.files, id));
   });
 
   app.post('/:id/entities', async (req, reply): Promise<TreeEntity> => {

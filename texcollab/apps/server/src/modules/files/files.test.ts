@@ -389,6 +389,27 @@ describe('document text API', () => {
   });
 });
 
+describe('symbols', () => {
+  it('returns labels, citation keys and paths to members only', async () => {
+    const proj = await createProject(env.app, alice, 'Symbols');
+    await upload(env.app, alice, `/api/projects/${proj.id}/upload`, '@article{key1, title={A Title}}', {
+      parentId: proj.rootFolderId,
+      path: 'refs.bib',
+    });
+    await upload(env.app, alice, `/api/projects/${proj.id}/upload`, '\\section{X}\\label{sec:x}', {
+      parentId: proj.rootFolderId,
+      path: 'ch/one.tex',
+    });
+    const res = await request(env.app, alice, 'GET', `/api/projects/${proj.id}/symbols`);
+    expect(res.json()).toMatchObject({
+      labels: [{ name: 'sec:x', file: 'ch/one.tex' }],
+      citations: [{ key: 'key1', title: 'A Title', file: 'refs.bib' }],
+    });
+    expect(res.json().files).toEqual(expect.arrayContaining(['main.tex', 'refs.bib', 'ch/one.tex']));
+    expect((await request(env.app, bob, 'GET', `/api/projects/${proj.id}/symbols`)).statusCode).toBe(404);
+  });
+});
+
 describe('garbage collection', () => {
   it('removes unreferenced blobs after the grace period only', async () => {
     const data = Buffer.from(`unique-${Date.now()}-\u0000`);

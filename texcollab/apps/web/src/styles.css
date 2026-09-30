@@ -20,6 +20,16 @@
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
   --topbar-h: 48px;
+  --cm-keyword: #1d4ed8;
+  --cm-atom: #7c3aed;
+  --cm-number: #b45309;
+  --cm-variable: #0f766e;
+  --cm-string: #047857;
+  --cm-comment: #6b7280;
+  --cm-bracket: #9d174d;
+  --cm-active-line: rgba(31, 111, 92, 0.06);
+  --cm-selection: rgba(31, 111, 92, 0.22);
+  --cm-selection-match: rgba(31, 111, 92, 0.14);
   color-scheme: light;
 }
 
@@ -41,6 +51,16 @@
     --success: #5fd38a;
     --success-soft: #1a3324;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --cm-keyword: #7aa2f7;
+    --cm-atom: #bb9af7;
+    --cm-number: #ff9e64;
+    --cm-variable: #2ac3de;
+    --cm-string: #9ece6a;
+    --cm-comment: #7a8599;
+    --cm-bracket: #f7768e;
+    --cm-active-line: rgba(255, 255, 255, 0.04);
+    --cm-selection: rgba(63, 174, 144, 0.3);
+    --cm-selection-match: rgba(63, 174, 144, 0.18);
     color-scheme: dark;
   }
 }
@@ -850,4 +870,140 @@ input[aria-invalid="true"] {
 .upload-error {
   color: var(--danger);
   font-size: 0.9em;
+}
+
+/* Editor workspace */
+.project-body {
+  flex: 1;
+  min-height: 0;
+}
+.resize-handle {
+  width: 5px;
+  background: var(--border);
+  cursor: col-resize;
+  transition: background 0.15s;
+}
+.resize-handle:hover,
+.resize-handle[data-separator-state="drag"] {
+  background: var(--accent);
+}
+.editor-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--surface);
+}
+.tab-bar {
+  display: flex;
+  align-items: stretch;
+  min-height: 34px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  overflow-x: auto;
+  flex: none;
+}
+.tab {
+  display: flex;
+  align-items: center;
+  border-right: 1px solid var(--border);
+  max-width: 220px;
+}
+.tab.active {
+  background: var(--surface);
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+.tab-label {
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--text-muted);
+  padding: 0 0.3rem 0 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 100%;
+}
+.tab.active .tab-label {
+  color: var(--text);
+}
+.tab-close {
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0 0.5rem 0 0.2rem;
+}
+.tab-close:hover {
+  color: var(--danger);
+}
+.tab-dirty {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--warn);
+  display: inline-block;
+}
+.tab-bar-tools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 0.6rem;
+  flex: none;
+}
+.save-indicator {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.save-error,
+.save-conflict,
+.save-offline {
+  color: var(--danger);
+  font-weight: 600;
+}
+.editor-banner {
+  margin: 0;
+  border-radius: 0;
+}
+.editor-stack {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+.editor-pane {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+.editor-pane[hidden] {
+  display: none;
+}
+.editor-host {
+  flex: 1;
+  min-height: 0;
+}
+.editor-host .cm-editor {
+  height: 100%;
+}
+.editor-host .cm-editor.cm-focused {
+  outline: none;
+}
+.pdf-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--surface-2);
+}
+.pdf-placeholder {
+  margin: auto;
+  padding: 2rem;
+  text-align: center;
 }

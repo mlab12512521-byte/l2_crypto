@@ -12,7 +12,7 @@ preview, project history backed by Git, and local or LDAP accounts.
 |---|---|---|
 | 1 | Foundation: server, SPA shell, PostgreSQL, local auth, admin user management, containers | ✅ done |
 | 2 | Projects, file tree, uploads, ZIP import/export | ✅ done |
-| 3 | Editor | planned |
+| 3 | Editor | ✅ done |
 | 4 | Sandboxed LaTeX compilation, PDF viewer | planned |
 | 5 | Real-time collaboration | planned |
 | 6 | Sharing and permissions | planned |

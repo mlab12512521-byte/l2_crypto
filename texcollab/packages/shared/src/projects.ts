@@ -181,3 +181,11 @@ export interface DocContent {
   text: string;
   contentHash: string;
 }
+
+/** Project-wide symbols for editor autocompletion. */
+export interface ProjectSymbols {
+  labels: Array<{ name: string; file: string }>;
+  citations: Array<{ key: string; file: string; title?: string }>;
+  /** All file paths, for \input, \include, \includegraphics, \bibliography. */
+  files: string[];
+}
