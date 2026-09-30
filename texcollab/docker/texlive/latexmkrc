@@ -1,0 +1,21 @@
+# Trusted latexmk configuration for sandboxed compiles.
+# latexmk is always started with -norc, so project-supplied latexmkrc files
+# (which are Perl code) are never read; only this file is.
+
+$max_repeat = 6;           # enough passes for references, bibliographies and indexes
+$bibtex_use = 2;           # run bibtex/biber when .bib files exist; delete stale .bbl
+$silent = 0;
+$show_time = 1;
+$recorder = 1;
+$synctex = 1;
+
+# Never run custom dependency rules or external converters.
+@cus_dep_list = ();
+$preview_mode = 0;
+$pvc_view_file_via_temporary = 0;
+
+# Biber via the sandbox wrapper (see biber-wrapper.sh).
+$biber = 'texcollab-biber %O %S';
+
+# Index generation is allowed (makeindex runs sandboxed too).
+$makeindex = 'makeindex %O -o %D %S';

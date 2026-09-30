@@ -4,6 +4,8 @@ import type { Db } from './db/index.js';
 import type { LogRingBuffer } from './logger.js';
 import { AuthService } from './modules/auth/service.js';
 import { SessionStore } from './modules/auth/sessions.js';
+import { CompileService } from './modules/compile/service.js';
+import { WorkerPool } from './modules/compile/worker-client.js';
 import { FileService } from './modules/files/service.js';
 import { ProjectAccess } from './modules/projects/access.js';
 import { ProjectService } from './modules/projects/service.js';
@@ -30,6 +32,8 @@ export interface AppContext {
   access: ProjectAccess;
   files: FileService;
   projects: ProjectService;
+  workers: WorkerPool;
+  compile: CompileService;
 }
 
 export function createContext(config: AppConfig, db: Db, log: Logger, logRing?: LogRingBuffer): AppContext {
@@ -45,7 +49,25 @@ export function createContext(config: AppConfig, db: Db, log: Logger, logRing?: 
   const access = new ProjectAccess(db);
   const files = new FileService(db, blobs, async () => limitsInBytes(await settings.get('projectLimits')));
   const projects = new ProjectService(db, files, paths);
-  return { config, db, log, logRing, sessions, users, auth, settings, paths, blobs, access, files, projects };
+  const workers = new WorkerPool(config.compile.workers, config.compile.workerSecret);
+  const compile = new CompileService(db, files, blobs, paths, settings, workers, log);
+  return {
+    config,
+    db,
+    log,
+    logRing,
+    sessions,
+    users,
+    auth,
+    settings,
+    paths,
+    blobs,
+    access,
+    files,
+    projects,
+    workers,
+    compile,
+  };
 }
 
 /** Create storage directories. Called once at startup (and by tests). */

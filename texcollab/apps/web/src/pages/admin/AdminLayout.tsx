@@ -8,6 +8,7 @@ export function AdminLayout() {
           Users
         </NavLink>
         <NavLink to="/admin/settings">Settings</NavLink>
+        <NavLink to="/admin/compilation">Compilation &amp; limits</NavLink>
         <NavLink to="/admin/status">System status</NavLink>
         <NavLink to="/admin/audit">Audit log</NavLink>
         <NavLink to="/admin/logs">Application logs</NavLink>

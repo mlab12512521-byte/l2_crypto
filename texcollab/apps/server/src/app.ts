@@ -11,6 +11,7 @@ import { registerRawBodyParser } from './http/content.js';
 import { AppError } from './lib/errors.js';
 import { adminRoutes } from './modules/admin/routes.js';
 import { authRoutes } from './modules/auth/routes.js';
+import { compileRoutes } from './modules/compile/routes.js';
 import { fileRoutes } from './modules/files/routes.js';
 import { healthRoutes } from './modules/health/routes.js';
 import { projectRoutes } from './modules/projects/routes.js';
@@ -39,6 +40,7 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
   await app.register(async (api) => adminRoutes(api, ctx), { prefix: '/api/admin' });
   await app.register(async (api) => projectRoutes(api, ctx), { prefix: '/api/projects' });
   await app.register(async (api) => fileRoutes(api, ctx), { prefix: '/api/projects' });
+  await app.register(async (api) => compileRoutes(api, ctx), { prefix: '/api/projects' });
 
   await registerSpa(app, ctx);
   return app;

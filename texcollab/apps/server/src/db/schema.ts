@@ -111,7 +111,23 @@ export interface DocContentsTable {
   updated_by: string | null;
 }
 
+export interface CompileBuildsTable {
+  id: Generated<string>;
+  project_id: string;
+  requested_by: string | null;
+  engine: 'pdflatex' | 'xelatex' | 'lualatex';
+  main_file: string;
+  status: 'running' | 'success' | 'failure' | 'timeout' | 'error';
+  started_at: Generated<Date>;
+  finished_at: NullableTimestamp;
+  duration_ms: number | null;
+  output_files: ColumnType<unknown, string | undefined, string>;
+  diagnostics: ColumnType<unknown, string | undefined, string>;
+  message: string | null;
+}
+
 export interface Database {
+  compile_builds: CompileBuildsTable;
   users: UsersTable;
   sessions: SessionsTable;
   system_settings: SystemSettingsTable;

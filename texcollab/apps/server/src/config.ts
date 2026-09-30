@@ -56,6 +56,10 @@ const envSchema = z.object({
   INITIAL_ADMIN_PASSWORD: z.string().optional(),
   INITIAL_ADMIN_EMAIL: z.string().optional(),
   RUN_MIGRATIONS_ON_START: booleanString.default(true),
+  /** Comma-separated base URLs of compile workers, e.g. http://compile-worker:8080 */
+  COMPILE_WORKERS: z.string().default(''),
+  /** Shared secret authenticating requests to compile workers (>= 32 chars). */
+  WORKER_SECRET: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -88,9 +92,13 @@ export interface AppConfig {
   };
   initialAdmin?: { username: string; password: string; email?: string };
   runMigrationsOnStart: boolean;
+  compile: {
+    workers: string[];
+    workerSecret: string | null;
+  };
 }
 
-const SECRET_VARS = ['DATABASE_URL', 'DB_PASSWORD', 'APP_SECRET', 'INITIAL_ADMIN_PASSWORD'] as const;
+const SECRET_VARS = ['DATABASE_URL', 'DB_PASSWORD', 'APP_SECRET', 'INITIAL_ADMIN_PASSWORD', 'WORKER_SECRET'] as const;
 
 /** Resolve `<NAME>_FILE` indirections for secret variables. */
 function resolveFileSecrets(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
@@ -112,6 +120,11 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     throw new Error(`Invalid configuration:\n${details}`);
   }
   const e = parsed.data;
+  if (e.COMPILE_WORKERS.trim() && (!e.WORKER_SECRET || e.WORKER_SECRET.length < 32)) {
+    throw new Error(
+      'Invalid configuration:\n  WORKER_SECRET (>= 32 characters) is required when COMPILE_WORKERS is set',
+    );
+  }
   let databaseUrl = e.DATABASE_URL;
   if (!databaseUrl) {
     if (!e.DB_PASSWORD)
@@ -163,5 +176,22 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     },
     ...(initialAdmin ? { initialAdmin } : {}),
     runMigrationsOnStart: e.RUN_MIGRATIONS_ON_START,
+    compile: {
+      workers: parseWorkerUrls(e.COMPILE_WORKERS),
+      workerSecret: e.WORKER_SECRET ?? null,
+    },
   };
+}
+
+function parseWorkerUrls(value: string): string[] {
+  return value
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => {
+      const u = new URL(s);
+      if (u.protocol !== 'http:' && u.protocol !== 'https:')
+        throw new Error('Invalid configuration:\n  COMPILE_WORKERS must be http(s) URLs');
+      return u.origin;
+    });
 }

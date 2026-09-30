@@ -1,4 +1,5 @@
 import {
+  type CompileResult,
   type Compiler,
   CSRF_HEADER,
   type DocContent,
@@ -34,6 +35,22 @@ export const projectsApi = {
   readText: (id: string, eid: string) => api.get<DocContent>(`/api/projects/${id}/entities/${eid}/text`),
   writeText: (id: string, eid: string, text: string, baseHash: string | null) =>
     api.put<DocContent>(`/api/projects/${id}/entities/${eid}/text`, { text, baseHash }),
+
+  compile: (id: string, draft = false) => api.post<CompileResult>(`/api/projects/${id}/compile`, { draft }),
+  latestBuild: (id: string) =>
+    api.get<{ build: CompileResult | null; running: boolean }>(`/api/projects/${id}/builds/latest`),
+  buildFileUrl: (id: string, buildId: string, file: string, download = false) =>
+    `/api/projects/${id}/builds/${buildId}/${file}${download ? '?download=1' : ''}`,
+  syncToPdf: (id: string, buildId: string, file: string, line: number) =>
+    api.get<{ boxes: Array<{ page: number; x: number; y: number; width: number; height: number }> }>(
+      `/api/projects/${id}/builds/${buildId}/synctex/code`,
+      { query: { file, line } },
+    ),
+  syncToCode: (id: string, buildId: string, page: number, x: number, y: number) =>
+    api.get<{ location: { file: string; line: number; entityId: string | null } | null }>(
+      `/api/projects/${id}/builds/${buildId}/synctex/pdf`,
+      { query: { page, x: x.toFixed(2), y: y.toFixed(2) } },
+    ),
 };
 
 /**

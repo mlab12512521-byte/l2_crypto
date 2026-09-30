@@ -1007,3 +1007,266 @@ input[aria-invalid="true"] {
   padding: 2rem;
   text-align: center;
 }
+
+/* Compile controls */
+.compile-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 1rem;
+}
+.compile-controls select {
+  padding: 0.2rem 0.4rem;
+  font-size: 0.85em;
+}
+.compile-summary {
+  gap: 0.3rem;
+}
+.compile-success {
+  border-color: var(--success);
+  color: var(--success);
+}
+.compile-failure,
+.compile-error,
+.compile-timeout {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.count {
+  display: inline-flex;
+  min-width: 1.3em;
+  height: 1.3em;
+  padding: 0 0.3em;
+  border-radius: 999px;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75em;
+  font-weight: 700;
+  color: #fff;
+}
+.count-error {
+  background: var(--danger);
+}
+.count-warning {
+  background: var(--warn);
+}
+
+/* Logs panel */
+.logs-panel {
+  flex: 0 0 38%;
+  min-height: 120px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+}
+.logs-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.logs-head .segmented button {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.85em;
+}
+.logs-links {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  font-size: 0.85em;
+}
+.logs-message {
+  padding: 0.4rem 0.75rem;
+  font-weight: 500;
+}
+.logs-success {
+  color: var(--success);
+}
+.logs-failure,
+.logs-error,
+.logs-timeout {
+  color: var(--danger);
+}
+.logs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  flex: 1;
+}
+.logs-empty {
+  padding: 0.75rem;
+}
+.log-item {
+  border-bottom: 1px solid var(--border);
+}
+.log-item-button {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.45rem 0.75rem;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+  border-left: 3px solid transparent;
+}
+.log-item-button:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.log-item-button:disabled {
+  cursor: default;
+}
+.log-item-error .log-item-button {
+  border-left-color: var(--danger);
+}
+.log-item-warning .log-item-button {
+  border-left-color: var(--warn);
+}
+.log-item-info .log-item-button {
+  border-left-color: var(--border);
+}
+.log-item-head {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.log-item-loc {
+  font-family: var(--mono);
+  font-size: 0.85em;
+}
+.log-item-msg {
+  word-break: break-word;
+}
+.log-item-context {
+  margin: 0;
+  font: 12px / 1.4 var(--mono);
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  max-height: 6em;
+  overflow: hidden;
+}
+.badge-error {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: transparent;
+}
+.badge-warning {
+  background: var(--warn-soft);
+  color: var(--warn);
+  border-color: transparent;
+}
+.badge-info {
+  background: var(--surface-2);
+}
+
+/* PDF viewer */
+.pdf-viewer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+}
+.pdf-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex: none;
+  flex-wrap: wrap;
+  min-height: 34px;
+}
+.pdf-toolbar select {
+  padding: 0.15rem 0.3rem;
+  font-size: 0.85em;
+}
+.pdf-toolbar .btn.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.pdf-toolbar-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 0.3rem;
+}
+.pdf-toolbar .pdf-page-input {
+  width: 3.2em;
+  text-align: center;
+  padding: 0.1rem 0.2rem;
+}
+.pdf-find {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.pdf-find input {
+  flex: 1;
+  min-width: 0;
+}
+.pdf-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.pdf-scroll {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  background: var(--surface-2);
+}
+.pdf-scroll .pdfViewer {
+  padding: 8px 0;
+}
+.pdf-scroll .pdfViewer .page {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  border: none;
+  margin: 8px auto;
+}
+.pdf-empty {
+  position: absolute;
+  inset: 34px 0 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  background: var(--surface-2);
+}
+.synctex-highlight {
+  position: absolute;
+  background: rgba(255, 200, 0, 0.35);
+  outline: 1px solid rgba(220, 150, 0, 0.8);
+  pointer-events: none;
+  z-index: 10;
+  animation: synctex-fade 2.5s ease-out forwards;
+}
+@keyframes synctex-fade {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.limits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0 1rem;
+  align-items: end;
+}

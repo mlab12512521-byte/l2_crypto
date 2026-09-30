@@ -14,3 +14,7 @@ Items knowingly deferred, with the phase expected to address them.
 | TD8 | Upload bodies that exceed limits are drained, not aborted, so bandwidth is wasted until the reverse proxy's body limit. | Aborting resets the connection and the browser never sees the error. | Phase 10: set proxy body limit |
 | TD9 | Before phase 5, documents are saved over REST with optimistic concurrency (concurrent edits produce a visible conflict, never silent loss). | Collaboration arrives in phase 5 and replaces this path in the editor. | Phase 5 |
 | TD10 | The SPA ships as one ~870 kB (270 kB gzip) bundle. | Acceptable on a LAN; split editor/PDF code later. | Phase 9 |
+| TD11 | Collaborators do not see a PDF refresh when someone else compiles until they compile or reload. | Needs the real-time channel. | Phase 5 |
+| TD12 | Compile outputs are per project (shared by all members), not per user. | Simpler; matches small teams. Per-user drafts could be added later. | — |
+| TD13 | `openin_any=p` does not stop `\input` of absolute paths inside the sandbox (documented in the security model). | Harmless while the container holds only TeX Live + the project; relies on never mounting anything else. | Keep in mind |
+| TD14 | Compile requests run synchronously in the HTTP request (up to the time limit). | Fine for ~30 users; a job queue with push notifications would scale better. | Revisit if scaling out |

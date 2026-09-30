@@ -10,6 +10,7 @@ COPY package.json package-lock.json ./
 COPY packages/shared/package.json packages/shared/
 COPY apps/server/package.json apps/server/
 COPY apps/web/package.json apps/web/
+COPY apps/compile-worker/package.json apps/compile-worker/
 RUN npm ci --no-audit --no-fund
 COPY tsconfig.base.json ./
 COPY packages/shared packages/shared
@@ -26,6 +27,7 @@ COPY package.json package-lock.json ./
 COPY packages/shared/package.json packages/shared/
 COPY apps/server/package.json apps/server/
 COPY apps/web/package.json apps/web/
+COPY apps/compile-worker/package.json apps/compile-worker/
 RUN npm ci --omit=dev --no-audit --no-fund -w @texcollab/server -w @texcollab/shared --include-workspace-root=false \
  && rm -rf node_modules/@texcollab
 

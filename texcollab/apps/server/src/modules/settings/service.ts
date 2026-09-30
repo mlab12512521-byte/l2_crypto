@@ -25,6 +25,16 @@ export const settingSchemas = {
       maxEntitiesPerProject: z.number().int().min(10).max(100_000).default(5000),
     })
     .prefault({}),
+  compileLimits: z
+    .object({
+      /** Wall-clock limit for one compilation (all passes). Workers enforce their own maximum too. */
+      timeoutSeconds: z.number().int().min(10).max(1800).default(120),
+      memoryMb: z.number().int().min(256).max(65_536).default(2048),
+      cpus: z.number().min(0.25).max(64).default(2),
+      /** How many past builds (PDF + logs) to keep per project. */
+      keepBuilds: z.number().int().min(1).max(50).default(3),
+    })
+    .prefault({}),
 } as const;
 
 export type SettingKey = keyof typeof settingSchemas;

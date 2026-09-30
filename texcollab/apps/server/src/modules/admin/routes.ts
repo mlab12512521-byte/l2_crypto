@@ -241,6 +241,11 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext): Promis
     return { items: ctx.logRing?.recent(q.limit, LEVELS[q.level]) ?? [] };
   });
 
+  app.get('/workers', async () => ({
+    configured: ctx.workers.configured,
+    workers: await ctx.workers.health(),
+  }));
+
   app.get('/status', async () => {
     const started = Date.now();
     const dbVersion = await sql<{ version: string }>`SHOW server_version`.execute(ctx.db);

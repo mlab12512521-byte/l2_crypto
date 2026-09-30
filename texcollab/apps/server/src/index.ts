@@ -20,6 +20,7 @@ async function main(): Promise<void> {
 
   const ctx = createContext(config, db, log, ring);
   await initStorage(ctx);
+  await ctx.compile.failStaleBuilds();
   await ensureInitialAdmin(ctx);
   const app = await buildApp(ctx);
   const stopJobs = startBackgroundJobs(ctx);

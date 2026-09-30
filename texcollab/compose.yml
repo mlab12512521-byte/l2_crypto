@@ -41,9 +41,12 @@ services:
       DATA_DIR: /data
       APP_SECRET_FILE: /run/secrets/app_secret
       DB_PASSWORD_FILE: /run/secrets/db_password
+      COMPILE_WORKERS: http://compile-worker:8080
+      WORKER_SECRET_FILE: /run/secrets/worker_secret
     secrets:
       - app_secret
       - db_password
+      - worker_secret
     volumes:
       - appdata:/data
     ports:
@@ -51,6 +54,7 @@ services:
       - "127.0.0.1:${APP_PORT:-3000}:3000"
     networks:
       - backend
+      - egress
     read_only: true
     tmpfs:
       - /tmp:size=256m
@@ -60,15 +64,73 @@ services:
       - ALL
     logging: *default-logging
 
+  # Runs compilations in throw-away sandbox containers. This is the only
+  # service with access to the Docker daemon; it has no database access, no
+  # app secrets and no project storage, and sits on an internal network.
+  compile-worker:
+    image: ${TEXCOLLAB_WORKER_IMAGE:-texcollab/compile-worker:latest}
+    build:
+      context: .
+      dockerfile: apps/compile-worker/Dockerfile
+    restart: unless-stopped
+    environment:
+      WORKER_SECRET_FILE: /run/secrets/worker_secret
+      COMPILE_IMAGE: ${COMPILE_IMAGE:-texcollab/texlive:latest}
+      MAX_CONCURRENCY: ${COMPILE_MAX_CONCURRENCY:-2}
+      MAX_QUEUE: ${COMPILE_MAX_QUEUE:-50}
+      MAX_TIMEOUT_SECONDS: ${COMPILE_MAX_TIMEOUT_SECONDS:-300}
+      MAX_MEMORY_MB: ${COMPILE_MAX_MEMORY_MB:-4096}
+      MAX_CPUS: ${COMPILE_MAX_CPUS:-4}
+      # Optional gVisor runtime for stronger isolation (must be installed on the host).
+      DOCKER_RUNTIME: ${COMPILE_DOCKER_RUNTIME:-}
+      WORKER_TMP_DIR: /work-tmp
+    secrets:
+      - worker_secret
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - worker-tmp:/work-tmp
+    # Group owning /var/run/docker.sock on the host: stat -c %g /var/run/docker.sock
+    group_add:
+      - "${DOCKER_GID:-999}"
+    networks:
+      - backend
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging: *default-logging
+
+  # Build-only: the TeX Live sandbox image used by the worker.
+  #   docker compose --profile build build texlive
+  texlive:
+    image: ${COMPILE_IMAGE:-texcollab/texlive:latest}
+    build:
+      context: docker/texlive
+      args:
+        TEXLIVE_IMAGE: ${TEXLIVE_BASE_IMAGE:-texlive/texlive:latest-full}
+    profiles: ["build"]
+    network_mode: none
+    entrypoint: ["true"]
+
 volumes:
   pgdata:
   appdata:
+  worker-tmp:
 
 networks:
+  # Database and compile worker: no route to the outside world.
   backend:
+    internal: true
+  # Outbound access for the app (external Git remotes).
+  egress:
 
 secrets:
   app_secret:
     file: ./secrets/app_secret
   db_password:
     file: ./secrets/db_password
+  worker_secret:
+    file: ./secrets/worker_secret

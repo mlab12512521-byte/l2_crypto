@@ -189,3 +189,35 @@ export interface ProjectSymbols {
   /** All file paths, for \input, \include, \includegraphics, \bibliography. */
   files: string[];
 }
+
+export type DiagnosticSeverity = 'error' | 'warning' | 'info';
+
+/** One problem reported by LaTeX, BibTeX or Biber. */
+export interface CompileDiagnostic {
+  severity: DiagnosticSeverity;
+  message: string;
+  /** Project-relative path, or null when the location is unknown or outside the project. */
+  file: string | null;
+  /** Entity id of `file`, when it is a project document. */
+  entityId: string | null;
+  line: number | null;
+  /** Extra context lines from the log (e.g. "l.12 \foo"). */
+  context?: string;
+  source: 'latex' | 'bibtex' | 'biber' | 'latexmk';
+  /** Overfull/underfull boxes. */
+  kind?: 'badbox';
+}
+
+export type CompileStatus = 'success' | 'failure' | 'timeout' | 'error';
+
+export interface CompileResult {
+  buildId: string;
+  status: CompileStatus;
+  message: string | null;
+  durationMs: number;
+  startedAt: string;
+  engine: Compiler;
+  /** Output files available for download (output.pdf, output.log, ...). */
+  outputFiles: Array<{ name: string; size: number }>;
+  diagnostics: CompileDiagnostic[];
+}
