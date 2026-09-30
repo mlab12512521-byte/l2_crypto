@@ -34,6 +34,7 @@ async function main(): Promise<void> {
     setTimeout(() => process.exit(1), 25_000).unref();
     stopJobs();
     try {
+      await ctx.collab.flush();
       await app.close();
       await db.destroy();
     } catch (err) {

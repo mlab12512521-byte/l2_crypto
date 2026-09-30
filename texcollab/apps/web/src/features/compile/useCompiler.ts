@@ -100,6 +100,17 @@ export function useCompiler(projectId: string, flushEdits: () => Promise<void>) 
     [autoKey],
   );
 
+  /** Reload the latest build (e.g. a collaborator compiled). */
+  const refresh = useCallback(async () => {
+    if (running.current) return;
+    try {
+      const r = await projectsApi.latestBuild(projectId);
+      setResult(r.build);
+    } catch {
+      // Keep the current state; the next compile will update it.
+    }
+  }, [projectId]);
+
   // Keep showing the last PDF when a new build produced none (e.g. fatal errors).
   const [pdf, setPdf] = useState<{ url: string; buildId: string } | null>(null);
   useEffect(() => {
@@ -113,6 +124,7 @@ export function useCompiler(projectId: string, flushEdits: () => Promise<void>) 
     compiling,
     error,
     compile,
+    refresh,
     notifyEdited,
     autoCompile,
     setAutoCompile,

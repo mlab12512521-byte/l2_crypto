@@ -102,6 +102,7 @@ function nameError(name: string): AppError | null {
 export class FileService {
   private docWriter: DocWriter;
   private readonly listeners: TreeChangeListener[] = [];
+  private readonly deletedListeners: Array<(docIds: string[]) => void> = [];
 
   constructor(
     private readonly db: Db,
@@ -123,12 +124,13 @@ export class FileService {
     this.listeners.push(fn);
   }
 
+  /** Called with the ids of text documents removed from the tree. */
+  onDocsDeleted(fn: (docIds: string[]) => void): void {
+    this.deletedListeners.push(fn);
+  }
+
   private async changed(projectId: string, userId: string | null): Promise<void> {
-    await this.db
-      .updateTable('projects')
-      .set({ last_modified_at: new Date(), last_modified_by: userId })
-      .where('id', '=', projectId)
-      .execute();
+    await recordChange(this.db, projectId, userId);
     for (const fn of this.listeners) fn(projectId);
   }
 
@@ -395,6 +397,7 @@ export class FileService {
       text = decodeText(await this.blobs.read(blob.hash));
     }
 
+    let replacedDocId: string | null = null;
     const result = await this.db.transaction().execute(async (trx) => {
       await this.requireFolder(projectId, parentId, trx);
       const folderId = await this.ensureFolders(projectId, parentId, segments, userId, trx);
@@ -419,7 +422,10 @@ export class FileService {
           .executeTakeFirstOrThrow();
         return { entity, replaced: true, docText: null };
       }
-      if (existing) await trx.deleteFrom('project_entities').where('id', '=', existing.id).execute();
+      if (existing) {
+        await trx.deleteFrom('project_entities').where('id', '=', existing.id).execute();
+        if (existing.kind === 'doc') replacedDocId = existing.id;
+      }
       const entity =
         text !== null
           ? await this.createDoc(projectId, folderId, name, text, userId, trx)
@@ -427,6 +433,7 @@ export class FileService {
       return { entity, replaced: existing !== undefined, docText: null };
     });
 
+    if (replacedDocId) for (const fn of this.deletedListeners) fn([replacedDocId]);
     if (result.docText !== null) {
       // Replacing an existing document goes through the doc writer so live editors see it.
       await this.docWriter.write(result.entity.id, result.docText, userId);
@@ -488,8 +495,17 @@ export class FileService {
   async delete(projectId: string, entityId: string, userId: string): Promise<void> {
     const e = await this.get(projectId, entityId);
     if (e.parent_id === null) throw badRequest('The project root cannot be deleted');
+    const docs = await sql<{ id: string }>`
+      WITH RECURSIVE sub(id, kind) AS (
+        SELECT id, kind FROM project_entities WHERE id = ${entityId}
+        UNION ALL
+        SELECT e.id, e.kind FROM project_entities e JOIN sub ON e.parent_id = sub.id
+      )
+      SELECT id FROM sub WHERE kind = 'doc'`.execute(this.db);
     // Children, document contents are removed by ON DELETE CASCADE; blobs by GC.
     await this.db.deleteFrom('project_entities').where('id', '=', entityId).execute();
+    const ids = docs.rows.map((r) => r.id);
+    for (const fn of this.deletedListeners) fn(ids);
     await this.changed(projectId, userId);
   }
 
@@ -558,5 +574,25 @@ export class FileService {
     }
     await this.blobs.cleanTmp(graceMs);
     return removed;
+  }
+}
+
+/**
+ * Mark a project as modified by a user: updates the "last modified" fields and
+ * records the user as a contributor to the next automatic version.
+ */
+export async function recordChange(db: Db, projectId: string, userId: string | null): Promise<void> {
+  const now = new Date();
+  await db
+    .updateTable('projects')
+    .set({ last_modified_at: now, last_modified_by: userId })
+    .where('id', '=', projectId)
+    .execute();
+  if (userId) {
+    await db
+      .insertInto('project_changes')
+      .values({ project_id: projectId, user_id: userId, first_change_at: now, last_change_at: now })
+      .onConflict((oc) => oc.columns(['project_id', 'user_id']).doUpdateSet({ last_change_at: now }))
+      .execute();
   }
 }

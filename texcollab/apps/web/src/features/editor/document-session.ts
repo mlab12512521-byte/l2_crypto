@@ -11,6 +11,8 @@ export type SaveStatus = 'loading' | 'saved' | 'dirty' | 'saving' | 'error' | 'c
  *  - the collaborative (Yjs) session added in phase 5.
  */
 export interface DocumentSession {
+  /** True when the document is bound through a CRDT (undo history is then per-user and managed by the binding). */
+  readonly collaborative: boolean;
   /** Resolve with the initial text and the extensions that bind the editor to the document. */
   open(): Promise<{ text: string; extensions: Extension[] }>;
   /** Push pending local edits to the server now. */
@@ -21,7 +23,12 @@ export interface DocumentSession {
 
 const SAVE_DELAY_MS = 800;
 
+/**
+ * Single-user fallback: REST autosave with optimistic concurrency. Used when
+ * real-time collaboration is not available.
+ */
 export class RestDocumentSession implements DocumentSession {
+  readonly collaborative = false;
   private baseHash: string | null = null;
   private pendingText: string | null = null;
   private timer: ReturnType<typeof setTimeout> | undefined;

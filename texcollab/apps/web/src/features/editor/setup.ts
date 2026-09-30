@@ -85,7 +85,10 @@ export const editorTheme = EditorView.theme({
 });
 
 /** The standard extension set of the TeXCollab editor, without the document binding. */
-export function baseExtensions(cb: EditorCallbacks, opts: { readOnly: boolean; wrap: boolean }): Extension[] {
+export function baseExtensions(
+  cb: EditorCallbacks,
+  opts: { readOnly: boolean; wrap: boolean; collaborative: boolean },
+): Extension[] {
   const compile = () => {
     cb.onCompile?.();
     return true;
@@ -94,7 +97,8 @@ export function baseExtensions(cb: EditorCallbacks, opts: { readOnly: boolean; w
     lineNumbers(),
     highlightActiveLineGutter(),
     highlightSpecialChars(),
-    history(),
+    // With collaboration, undo is provided by the Yjs binding (undoes only your own edits).
+    opts.collaborative ? [] : history(),
     foldGutter(),
     drawSelection(),
     dropCursor(),
@@ -130,7 +134,7 @@ export function baseExtensions(cb: EditorCallbacks, opts: { readOnly: boolean; w
       ...closeBracketsKeymap,
       ...defaultKeymap,
       ...searchKeymap,
-      ...historyKeymap,
+      ...(opts.collaborative ? [] : historyKeymap),
       ...foldKeymap,
       ...completionKeymap,
       ...lintKeymap,

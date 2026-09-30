@@ -62,7 +62,7 @@ export function EditorPane({
           parent: host.current,
           state: EditorState.create({
             doc: text,
-            extensions: [baseExtensions(stable, { readOnly, wrap }), extensions],
+            extensions: [baseExtensions(stable, { readOnly, wrap, collaborative: session.collaborative }), extensions],
           }),
         });
         viewRef.current = view;

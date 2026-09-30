@@ -3,6 +3,7 @@ import path from 'node:path';
 import fastifyCookie from '@fastify/cookie';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
+import fastifyWebsocket from '@fastify/websocket';
 import type { ApiErrorBody } from '@texcollab/shared';
 import Fastify, { type FastifyBaseLogger, type FastifyError, type FastifyInstance } from 'fastify';
 import type { AppContext } from './context.js';
@@ -11,6 +12,7 @@ import { registerRawBodyParser } from './http/content.js';
 import { AppError } from './lib/errors.js';
 import { adminRoutes } from './modules/admin/routes.js';
 import { authRoutes } from './modules/auth/routes.js';
+import { collabRoutes } from './modules/collab/routes.js';
 import { compileRoutes } from './modules/compile/routes.js';
 import { fileRoutes } from './modules/files/routes.js';
 import { healthRoutes } from './modules/health/routes.js';
@@ -29,6 +31,7 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
 
   await app.register(fastifyCookie);
   await app.register(fastifyRateLimit, { global: false });
+  await app.register(fastifyWebsocket, { options: { maxPayload: 16 * 1024 * 1024 } });
 
   registerSecurityHeaders(app, ctx);
   registerErrorHandling(app);
@@ -36,6 +39,7 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
   registerRawBodyParser(app);
 
   await app.register(async (api) => healthRoutes(api, ctx));
+  await app.register(async (api) => collabRoutes(api, ctx));
   await app.register(async (api) => authRoutes(api, ctx), { prefix: '/api/auth' });
   await app.register(async (api) => adminRoutes(api, ctx), { prefix: '/api/admin' });
   await app.register(async (api) => projectRoutes(api, ctx), { prefix: '/api/projects' });

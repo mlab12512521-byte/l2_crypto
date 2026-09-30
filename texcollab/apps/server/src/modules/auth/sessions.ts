@@ -88,6 +88,21 @@ export class SessionStore {
     return { id: session_id, csrfToken: csrf_token, expiresAt: expires_at, user };
   }
 
+  /** Whether a session still exists, has not expired and belongs to an enabled user. */
+  async isValid(sessionId: Buffer): Promise<boolean> {
+    const now = new Date();
+    const row = await this.db
+      .selectFrom('sessions')
+      .innerJoin('users', 'users.id', 'sessions.user_id')
+      .select('sessions.id')
+      .where('sessions.id', '=', sessionId)
+      .where('sessions.expires_at', '>', now)
+      .where('sessions.idle_expires_at', '>', now)
+      .where('users.is_disabled', '=', false)
+      .executeTakeFirst();
+    return row !== undefined;
+  }
+
   async revoke(sessionId: Buffer): Promise<void> {
     await this.db.deleteFrom('sessions').where('id', '=', sessionId).execute();
   }

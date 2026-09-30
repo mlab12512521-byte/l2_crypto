@@ -4,6 +4,7 @@ import type { Db } from './db/index.js';
 import type { LogRingBuffer } from './logger.js';
 import { AuthService } from './modules/auth/service.js';
 import { SessionStore } from './modules/auth/sessions.js';
+import { CollabHub } from './modules/collab/hub.js';
 import { CompileService } from './modules/compile/service.js';
 import { WorkerPool } from './modules/compile/worker-client.js';
 import { FileService } from './modules/files/service.js';
@@ -34,6 +35,7 @@ export interface AppContext {
   projects: ProjectService;
   workers: WorkerPool;
   compile: CompileService;
+  collab: CollabHub;
 }
 
 export function createContext(config: AppConfig, db: Db, log: Logger, logRing?: LogRingBuffer): AppContext {
@@ -51,7 +53,22 @@ export function createContext(config: AppConfig, db: Db, log: Logger, logRing?: 
   const projects = new ProjectService(db, files, paths);
   const workers = new WorkerPool(config.compile.workers, config.compile.workerSecret);
   const compile = new CompileService(db, files, blobs, paths, settings, workers, log);
+  const collab = new CollabHub(db, access, sessions, log, {
+    maxTextBytes: async () => limitsInBytes(await settings.get('projectLimits')).maxTextFileSizeBytes,
+  });
+  // Text changes made by the server go through the collaboration hub, so
+  // connected editors receive them as ordinary collaborative edits.
+  files.setDocWriter(collab);
+  files.onTreeChange((projectId) => collab.notify(projectId, { type: 'tree' }));
+  files.onDocsDeleted((ids) => {
+    for (const id of ids) collab.closeDocument(id);
+  });
+  projects.onDeleted((projectId) => collab.closeProject(projectId));
+  compile.onCompiled((projectId, result, userId) =>
+    collab.notify(projectId, { type: 'compiled', buildId: result.buildId, status: result.status, by: userId }),
+  );
   return {
+    collab,
     config,
     db,
     log,

@@ -126,7 +126,15 @@ export interface CompileBuildsTable {
   message: string | null;
 }
 
+export interface ProjectChangesTable {
+  project_id: string;
+  user_id: string;
+  first_change_at: Generated<Date>;
+  last_change_at: Generated<Date>;
+}
+
 export interface Database {
+  project_changes: ProjectChangesTable;
   compile_builds: CompileBuildsTable;
   users: UsersTable;
   sessions: SessionsTable;

@@ -54,6 +54,7 @@ export async function authRoutes(app: FastifyInstance, ctx: AppContext): Promise
   app.post('/logout', { config: { allowPendingPasswordChange: true } }, async (req, reply) => {
     if (req.sessionId) {
       await ctx.sessions.revoke(req.sessionId);
+      ctx.collab.disconnectSession(req.sessionId);
       if (req.user) await audit(ctx.db, { actorId: req.user.id, action: 'auth.logout', ip: req.ip });
     }
     clearSessionCookie(reply, ctx);

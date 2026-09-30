@@ -114,8 +114,9 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext): Promis
     const body = parse(updateUserSchema, req.body);
     const user = await ctx.users.update(id, body);
     if (body.isDisabled === true) {
-      // Disabling takes effect immediately on all devices.
+      // Disabling takes effect immediately on all devices, including live editing sessions.
       await ctx.sessions.revokeAllForUser(id);
+      ctx.collab.disconnectUser(id);
     }
     await audit(ctx.db, {
       actorId: admin.id,
@@ -134,6 +135,7 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext): Promis
     const body = parse(setPasswordSchema, req.body);
     await ctx.users.setPassword(id, body.password, body.mustChangePassword);
     await ctx.sessions.revokeAllForUser(id, id === admin.id ? (req.sessionId ?? undefined) : undefined);
+    if (id !== admin.id) ctx.collab.disconnectUser(id);
     await audit(ctx.db, {
       actorId: admin.id,
       action: 'admin.password_reset',
@@ -259,6 +261,7 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext): Promis
       database: { ok: true, version: dbVersion.rows[0]?.version ?? 'unknown', latencyMs: dbLatencyMs },
       users: { total: await ctx.users.count() },
       activeSessions: await ctx.sessions.countActive(),
+      collaboration: ctx.collab.stats(),
     };
   });
 }

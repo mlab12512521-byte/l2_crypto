@@ -188,3 +188,22 @@ export function upload(
     payload: typeof data === 'string' ? Buffer.from(data) : data,
   });
 }
+
+/** Start the app on a random local port (for WebSocket tests). Returns the port. */
+export async function listen(env: TestEnv): Promise<number> {
+  await env.app.listen({ port: 0, host: '127.0.0.1' });
+  const addr = env.app.server.address();
+  if (!addr || typeof addr === 'string') throw new Error('not listening');
+  return addr.port;
+}
+
+/** Poll until `fn` returns a truthy value (or throw after `timeoutMs`). */
+export async function waitFor<T>(fn: () => T | Promise<T>, timeoutMs = 5000, what = 'condition'): Promise<T> {
+  const start = Date.now();
+  for (;;) {
+    const v = await fn();
+    if (v) return v;
+    if (Date.now() - start > timeoutMs) throw new Error(`timed out waiting for ${what}`);
+    await new Promise((r) => setTimeout(r, 25));
+  }
+}

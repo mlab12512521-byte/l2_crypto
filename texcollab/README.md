@@ -14,7 +14,7 @@ preview, project history backed by Git, and local or LDAP accounts.
 | 2 | Projects, file tree, uploads, ZIP import/export | ✅ done |
 | 3 | Editor | ✅ done |
 | 4 | Sandboxed LaTeX compilation, PDF viewer | ✅ done |
-| 5 | Real-time collaboration | planned |
+| 5 | Real-time collaboration | ✅ done |
 | 6 | Sharing and permissions | planned |
 | 7 | Git history, automatic versions, external remotes | planned |
 | 8 | LDAP | planned |
@@ -24,7 +24,7 @@ preview, project history backed by Git, and local or LDAP accounts.
 ## Repository layout
 
 ```
-apps/server          Node.js/TypeScript API (Fastify) — later also the collaboration hub
+apps/server          Node.js/TypeScript API (Fastify) and the collaboration hub (Hocuspocus/Yjs)
 apps/web             React SPA (Vite)
 apps/compile-worker  Runs each compilation in an isolated Docker container
 docker/texlive       The TeX Live sandbox image
@@ -56,4 +56,5 @@ with the initial admin, and choose a new password when prompted.
 - [Security model and threat model](docs/security-model.md)
 - [LaTeX compilation](docs/compilation.md)
 - [Editor features](docs/editor.md)
+- [Real-time collaboration](docs/collaboration.md)
 - [Technical debt log](docs/tech-debt.md)

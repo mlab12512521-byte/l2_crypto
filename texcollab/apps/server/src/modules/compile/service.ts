@@ -40,7 +40,7 @@ export function toCompileResult(row: BuildRow): CompileResult {
 }
 
 /** Listeners notified when a build finishes (e.g. to tell collaborators to refresh the PDF). */
-export type CompileListener = (projectId: string, result: CompileResult) => void;
+export type CompileListener = (projectId: string, result: CompileResult, userId: string | null) => void;
 
 /**
  * Orchestrates compilations: snapshot → tar → worker → stored outputs +
@@ -189,7 +189,7 @@ export class CompileService {
       .executeTakeFirstOrThrow();
     await this.pruneBuilds(projectId, limits.keepBuilds);
     const result = toCompileResult(row);
-    for (const fn of this.listeners) fn(projectId, result);
+    for (const fn of this.listeners) fn(projectId, result, userId);
     return result;
   }
 

@@ -13,11 +13,14 @@ import { Group, Panel, Separator } from 'react-resizable-panels';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError, api } from '../../api/client';
 import { projectsApi } from '../../api/projects';
+import { useAuth } from '../../auth/AuthContext';
 import { ErrorBanner, Spinner } from '../../components/ui';
 import { useUploader } from '../../hooks/useUploader';
+import { PresenceBar } from '../collab/PresenceBar';
+import { useProjectConnection } from '../collab/useProjectConnection';
 import { LogsPanel } from '../compile/LogsPanel';
 import { useCompiler } from '../compile/useCompiler';
-import { type DocumentSession, RestDocumentSession, type SaveStatus } from '../editor/document-session';
+import type { DocumentSession, SaveStatus } from '../editor/document-session';
 import { type EditorDiagnostic, EditorPane } from '../editor/EditorPane';
 import { FileTree } from '../files/FileTree';
 import { buildTree, pathIndex } from '../files/tree-model';
@@ -31,6 +34,7 @@ const NO_DIAGNOSTICS: EditorDiagnostic[] = [];
 export function ProjectPage() {
   const { projectId = '' } = useParams();
   const qc = useQueryClient();
+  const { user: me } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<Record<string, { s: SaveStatus; m?: string | undefined }>>({});
   const [wrap, setWrap] = useState(true);
@@ -61,8 +65,18 @@ export function ProjectPage() {
     void qc.invalidateQueries({ queryKey: ['project', projectId, 'tree'] });
     void qc.invalidateQueries({ queryKey: ['project', projectId, 'symbols'] });
   }, [qc, projectId]);
+
+  // Real-time connection: presence, notifications and collaborative documents.
+  const live = useProjectConnection(projectId, me ? { id: me.id, displayName: me.displayName } : null, (event) => {
+    if (event.type === 'tree') refreshTree();
+    else if (event.type === 'project') void qc.invalidateQueries({ queryKey: ['project', projectId], exact: true });
+    else if (event.type === 'compiled' && event.by !== me?.id) void compiler.refresh();
+  });
   const uploader = useUploader(projectId, refreshTree);
   const tabs = useTabs(projectId, tree.data?.entities, project.data?.mainFileId ?? null);
+  useEffect(() => {
+    live.connection?.setOpenFile(tabs.active);
+  }, [live.connection, tabs.active]);
   const updateProject = useMutation({
     mutationFn: (patch: { mainFileId?: string; compiler?: Compiler }) => projectsApi.update(projectId, patch),
     onSuccess: (p) => qc.setQueryData(['project', projectId], p),
@@ -98,6 +112,18 @@ export function ProjectPage() {
     () => (tree.data ? pathIndex(buildTree(tree.data.rootId, tree.data.entities)) : new Map<string, string>()),
     [tree.data],
   );
+
+  // Other users' open files, for markers in the file tree.
+  const presenceByFile = useMemo(() => {
+    const m = new Map<string, Array<{ id: string; name: string; color: string }>>();
+    for (const p of live.presence) {
+      if (!p.openFile || p.user.id === me?.id) continue;
+      const list = m.get(p.openFile) ?? [];
+      if (!list.some((u) => u.id === p.user.id)) list.push({ id: p.user.id, name: p.user.name, color: p.user.color });
+      m.set(p.openFile, list);
+    }
+    return m;
+  }, [live.presence, me?.id]);
 
   // Compile diagnostics grouped per document for the editors.
   const diagnosticsByEntity = useMemo(() => {
@@ -248,6 +274,7 @@ export function ProjectPage() {
           )}
         </div>
         <div className="project-header-right">
+          {me && <PresenceBar presence={live.presence} meId={me.id} state={live.state} files={byId} />}
           <a className="btn btn-small" href={projectsApi.exportUrl(p.id)} download>
             Download ZIP
           </a>
@@ -281,6 +308,7 @@ export function ProjectPage() {
             upload={uploader.enqueue}
             uploads={uploader.tasks}
             onClearUploads={uploader.clearFinished}
+            presence={presenceByFile}
           />
         </Panel>
         <Separator className="resize-handle" />
@@ -342,6 +370,7 @@ export function ProjectPage() {
             {tabs.open.map((id) => {
               const e = byId.get(id);
               if (!e) return null;
+              if (e.kind === 'doc' && !live.connection) return null;
               if (e.kind !== 'doc') {
                 return (
                   <div key={id} className="editor-pane" hidden={id !== tabs.active}>
@@ -353,7 +382,7 @@ export function ProjectPage() {
                 <EditorPane
                   key={id}
                   createSession={() => {
-                    const s = new RestDocumentSession(p.id, id);
+                    const s = live.connection!.openDocument(id);
                     sessions.current.set(id, s);
                     const destroy = s.destroy.bind(s);
                     s.destroy = () => {

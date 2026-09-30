@@ -19,6 +19,8 @@ export interface FileTreeProps {
   upload: (parentId: string, items: PendingUpload[]) => void;
   uploads: UploadTask[];
   onClearUploads: () => void;
+  /** Other users who have a file open, by entity id. */
+  presence?: Map<string, Array<{ id: string; name: string; color: string }>>;
 }
 
 type Pending = { kind: 'folder' | 'doc'; parentId: string } | null;
@@ -224,6 +226,14 @@ export function FileTree(props: FileTreeProps) {
               ) : (
                 <span className="tree-name">{node.name}</span>
               )}
+              {props.presence?.get(node.id)?.map((u) => (
+                <span
+                  key={u.id}
+                  className="tree-presence"
+                  style={{ background: u.color }}
+                  title={`${u.name} has this file open`}
+                />
+              ))}
               {node.id === props.mainFileId && (
                 <span className="tree-main" title="Main file (compiled)">
                   main

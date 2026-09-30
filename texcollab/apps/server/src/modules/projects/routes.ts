@@ -112,6 +112,7 @@ export async function projectRoutes(app: FastifyInstance, ctx: AppContext): Prom
     if (body.name !== undefined) await ctx.projects.rename(id, body.name);
     if (body.compiler !== undefined) await ctx.projects.setCompiler(id, body.compiler);
     if (body.mainFileId !== undefined) await ctx.projects.setMainFile(id, body.mainFileId);
+    ctx.collab.notify(id, { type: 'project' });
     return ctx.projects.details(id, user.id, role);
   });
 
