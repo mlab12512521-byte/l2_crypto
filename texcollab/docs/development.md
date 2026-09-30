@@ -55,6 +55,13 @@ server given by `TEST_DATABASE_URL`
 (default `postgres://texcollab:texcollab@127.0.0.1:5432/postgres`, i.e. the
 dev compose database) and drop it afterwards. The user needs `CREATEDB`.
 
+Tests that need Docker images are skipped when the image is missing:
+
+```sh
+docker build -t texcollab/texlive:dev docker/texlive      # compile-worker sandbox tests
+docker build -t texcollab/test-ldap:dev docker/test-ldap  # LDAP tests (apps/server/src/modules/ldap)
+```
+
 ## Conventions
 
 - TypeScript strict mode everywhere; no `any`.

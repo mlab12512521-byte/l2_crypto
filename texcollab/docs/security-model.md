@@ -60,6 +60,7 @@ by the optional gVisor runtime, §5.4).
 | Resource exhaustion (uploads) | Streaming uploads capped per file; per-project size and entry quotas; JSON body limit 1 MB | `files.test.ts` |
 | Information leakage | Generic 500s with request IDs; secrets redacted from logs (pino redaction); audit log contains no secrets; config errors never print values | `admin.test.ts`, `config.test.ts` |
 | Privilege escalation via admin API | Admin routes require `is_admin`; last active admin cannot be demoted, disabled or deleted; unknown fields rejected | `admin.test.ts` |
+| LDAP injection / insecure directory access | Login names escaped per RFC 4515 in admin-defined filters; exactly one entry must match; empty passwords refused before binding; LDAPS or StartTLS required unless explicitly overridden; certificates always verified (custom CA possible); bind password encrypted, write-only and only reused for the same server and bind DN; local accounts cannot be taken over by directory entries; group sync never removes the last admin | `ldap.test.ts` (OpenLDAP container), `filter.test.ts` |
 
 ## 5. LaTeX compilation sandbox
 

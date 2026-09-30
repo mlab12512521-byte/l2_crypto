@@ -241,6 +241,34 @@ input[aria-invalid="true"] {
   background: var(--danger-soft);
   color: var(--danger);
 }
+.banner-warning {
+  background: color-mix(in srgb, #f5b400 16%, var(--surface));
+  border: 1px solid color-mix(in srgb, #f5b400 55%, var(--border));
+}
+.ldap-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.ldap-steps li {
+  padding: 0.2rem 0;
+}
+.ldap-steps .ok span {
+  color: var(--accent);
+}
+.ldap-steps .fail {
+  color: var(--danger);
+}
+.ldap-user {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.2rem 1rem;
+  margin: 0;
+}
+.ldap-user dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
 .banner-success {
   background: var(--success-soft);
   color: var(--success);

@@ -1,0 +1,77 @@
+dn: dc=example,dc=org
+objectClass: dcObject
+objectClass: organization
+o: Example
+dc: example
+
+dn: cn=reader,dc=example,dc=org
+objectClass: organizationalRole
+objectClass: simpleSecurityObject
+cn: reader
+userPassword: reader-secret
+
+dn: ou=people,dc=example,dc=org
+objectClass: organizationalUnit
+ou: people
+
+dn: ou=groups,dc=example,dc=org
+objectClass: organizationalUnit
+ou: groups
+
+dn: uid=alice,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: alice
+cn: Alice Liddell
+sn: Liddell
+mail: alice@example.org
+userPassword: alice-password
+
+dn: uid=bob,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: bob
+cn: Bob Builder
+sn: Builder
+mail: bob@example.org
+userPassword: bob-password
+
+dn: uid=carol,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: carol
+cn: Carol Outsider
+sn: Outsider
+mail: carol@example.org
+userPassword: carol-password
+
+dn: uid=d(ave)*,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: d(ave)*
+cn: Dave Special
+sn: Special
+userPassword: dave-password
+
+dn: uid=dup,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: dup
+cn: Duplicate One
+sn: One
+userPassword: dup-password
+
+dn: cn=dup,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: dup
+cn: dup
+sn: Two
+userPassword: dup-password
+
+dn: cn=texcollab-users,ou=groups,dc=example,dc=org
+objectClass: groupOfNames
+cn: texcollab-users
+member: uid=alice,ou=people,dc=example,dc=org
+member: uid=bob,ou=people,dc=example,dc=org
+member: uid=d(ave)*,ou=people,dc=example,dc=org
+member: uid=dup,ou=people,dc=example,dc=org
+
+dn: cn=texcollab-admins,ou=groups,dc=example,dc=org
+objectClass: groupOfNames
+cn: texcollab-admins
+member: uid=alice,ou=people,dc=example,dc=org

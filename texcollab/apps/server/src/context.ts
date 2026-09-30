@@ -10,6 +10,7 @@ import { WorkerPool } from './modules/compile/worker-client.js';
 import { FileService } from './modules/files/service.js';
 import { RemoteService } from './modules/git/remote.js';
 import { VersionService } from './modules/git/versions.js';
+import { LdapService } from './modules/ldap/service.js';
 import { ProjectAccess } from './modules/projects/access.js';
 import { ProjectService } from './modules/projects/service.js';
 import { limitsInBytes, SettingsService } from './modules/settings/service.js';
@@ -42,6 +43,7 @@ export interface AppContext {
   sharing: SharingService;
   versions: VersionService;
   remotes: RemoteService;
+  ldap: LdapService;
 }
 
 export function createContext(config: AppConfig, db: Db, log: Logger, logRing?: LogRingBuffer): AppContext {
@@ -91,7 +93,10 @@ export function createContext(config: AppConfig, db: Db, log: Logger, logRing?: 
     accessChanged: (_projectId, userId) => collab.disconnectUser(userId),
     membersChanged: (projectId) => collab.notify(projectId, { type: 'members' }),
   });
+  const ldap = new LdapService(db, log, config.appSecret);
+  auth.setExternalAuthenticator(ldap);
   return {
+    ldap,
     versions,
     remotes,
     sharing,

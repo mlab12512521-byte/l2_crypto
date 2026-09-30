@@ -6,6 +6,7 @@ import { AccountPage } from './pages/AccountPage';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AuditPage } from './pages/admin/AuditPage';
 import { CompilationPage } from './pages/admin/CompilationPage';
+import { LdapPage } from './pages/admin/LdapPage';
 import { LogsPage } from './pages/admin/LogsPage';
 import { SettingsPage } from './pages/admin/SettingsPage';
 import { StatusPage } from './pages/admin/StatusPage';
@@ -56,6 +57,7 @@ export function App() {
         >
           <Route index element={<UsersPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="ldap" element={<LdapPage />} />
           <Route path="compilation" element={<CompilationPage />} />
           <Route path="status" element={<StatusPage />} />
           <Route path="audit" element={<AuditPage />} />

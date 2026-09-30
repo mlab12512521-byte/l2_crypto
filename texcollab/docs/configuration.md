@@ -39,6 +39,12 @@ stops the app at startup with a message naming the variable (never its value).
 |---|---|
 | `INITIAL_ADMIN_USERNAME`, `INITIAL_ADMIN_PASSWORD` *secret*, `INITIAL_ADMIN_EMAIL` | If set and the database has no users, an administrator is created at startup who must change the password at first login. Remove the values afterwards. Alternatively use the CLI: `docker compose exec app node server/dist/cli.js create-admin <username>` (password on stdin). |
 
+## Directory (LDAP)
+
+Configured in the UI under *Administration → Directory (LDAP)*, not via
+environment variables; see [ldap.md](ldap.md). The bind password is stored
+encrypted with a key derived from `APP_SECRET`.
+
 ## Settings managed in the UI
 
 Stored in the database (`system_settings`), editable under

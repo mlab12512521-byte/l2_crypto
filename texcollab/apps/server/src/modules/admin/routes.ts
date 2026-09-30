@@ -2,6 +2,10 @@ import {
   type AdminUser,
   displayNameSchema,
   emailSchema,
+  type LdapSettingsView,
+  type LdapTestResult,
+  ldapTestSchema,
+  ldapUpdateSchema,
   type Paginated,
   passwordSchema,
   usernameSchema,
@@ -207,6 +211,34 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext): Promis
     });
     return saved;
   });
+
+  // ---- directory (LDAP). The bind password is write-only.
+
+  app.get('/ldap', async (): Promise<LdapSettingsView> => ctx.ldap.view());
+
+  app.put('/ldap', async (req): Promise<LdapSettingsView> => {
+    const body = parse(ldapUpdateSchema, req.body);
+    const saved = await ctx.ldap.save(body, req.user!.id);
+    await audit(ctx.db, {
+      actorId: req.user!.id,
+      action: 'admin.ldap_changed',
+      targetType: 'setting',
+      targetId: 'ldap',
+      ip: req.ip,
+      details: { enabled: saved.enabled, passwordChanged: body.bindPassword !== undefined },
+    });
+    return saved;
+  });
+
+  /** Try a configuration (saved or not) and optionally look up / verify a user. */
+  app.post(
+    '/ldap/test',
+    { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },
+    async (req): Promise<LdapTestResult> => {
+      const body = parse(ldapTestSchema, req.body);
+      return ctx.ldap.test(body);
+    },
+  );
 
   app.get('/audit', async (req) => {
     const q = parse(auditQuery, req.query);

@@ -24,3 +24,5 @@ Items knowingly deferred, with the phase expected to address them.
 | TD18 | External remotes are HTTPS only; no SSH (decision D15). | Tokens cover all common hosts; SSH needs key/known-hosts management. | If requested |
 | TD19 | Empty folders are not recorded in versions (Git cannot store empty directories); restoring removes folders that are empty. | Matches Git semantics; a placeholder file would pollute pushed repositories. | — |
 | TD20 | `git fetch` from a remote is bounded by a timeout, not by size; a huge remote repository could fill the disk. | Only owners configure remotes and admins can allow-list hosts. | Phase 9: check size after fetch / quota |
+| TD21 | LDAP accounts are not de-provisioned when removed from the directory (they just cannot sign in; existing sessions last until they expire). | Would need a periodic directory sync with its own credentials/permissions. | If wanted: nightly sync job |
+| TD22 | One directory server URL; no failover list. | Most sites use a load-balanced name. | If requested |

@@ -17,7 +17,7 @@ preview, project history backed by Git, and local or LDAP accounts.
 | 5 | Real-time collaboration | ✅ done |
 | 6 | Sharing and permissions | ✅ done |
 | 7 | Git history, automatic versions, external remotes | ✅ done |
-| 8 | LDAP | planned |
+| 8 | LDAP | ✅ done |
 | 9 | Hardening | planned |
 | 10 | Production deployment | planned |
 
@@ -59,4 +59,5 @@ with the initial admin, and choose a new password when prompted.
 - [Real-time collaboration](docs/collaboration.md)
 - [Sharing and permissions](docs/sharing.md)
 - [History, versions and Git](docs/git-integration.md)
+- [Directory sign-in (LDAP)](docs/ldap.md)
 - [Technical debt log](docs/tech-debt.md)

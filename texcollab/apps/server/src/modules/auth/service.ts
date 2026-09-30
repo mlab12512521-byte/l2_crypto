@@ -118,7 +118,10 @@ export class AuthService {
         return fail('directory_rejected', existing?.id ?? null);
       }
       if (existing?.is_disabled) return this.disabled(existing, ctx);
-      return external.provision(identity);
+      const user = await external.provision(identity);
+      // The directory may map this login to a different (disabled) account.
+      if (user.is_disabled) return this.disabled(user, ctx);
+      return user;
     }
 
     if (existing) {

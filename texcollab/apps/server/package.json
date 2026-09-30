@@ -23,6 +23,7 @@
     "@texcollab/shared": "*",
     "fastify": "^5.12.5",
     "kysely": "^0.29.6",
+    "ldapts": "^9.2.0",
     "pg": "^8.23.0",
     "pino": "^10.3.1",
     "tar-stream": "^3.2.1",
