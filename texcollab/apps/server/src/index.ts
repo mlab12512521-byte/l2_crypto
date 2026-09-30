@@ -23,6 +23,8 @@ async function main(): Promise<void> {
   await ctx.compile.failStaleBuilds();
   await ensureInitialAdmin(ctx);
   const app = await buildApp(ctx);
+  ctx.metrics.addPool(pool);
+  const metricsServer = config.metricsPort > 0 ? await ctx.metrics.listen(config.host, config.metricsPort) : null;
   const stopJobs = startBackgroundJobs(ctx);
 
   let shuttingDown = false;
@@ -35,6 +37,7 @@ async function main(): Promise<void> {
     stopJobs();
     try {
       await ctx.collab.flush();
+      metricsServer?.close();
       await app.close();
       await db.destroy();
     } catch (err) {

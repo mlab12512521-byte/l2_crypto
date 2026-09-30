@@ -72,13 +72,27 @@ export async function compileRoutes(app: FastifyInstance, ctx: AppContext): Prom
   });
 
   /** Compile the project. Viewers may compile too: it changes nothing in the project. */
-  app.post('/:id/compile', async (req): Promise<CompileResult> => {
-    const user = requireUser(req);
-    const { id } = parse(projectParams, req.params);
-    const body = parse(z.object({ draft: z.boolean().default(false) }).default({ draft: false }), req.body ?? {});
-    await ctx.access.require(user.id, id, 'viewer');
-    return ctx.compile.compile(id, user.id, { draft: body.draft });
-  });
+  app.post(
+    '/:id/compile',
+    // Per user, not per IP: a whole office may share one address.
+    {
+      config: {
+        rateLimit: {
+          hook: 'preHandler',
+          max: 60,
+          timeWindow: '1 minute',
+          keyGenerator: (req) => req.user?.id ?? req.ip,
+        },
+      },
+    },
+    async (req): Promise<CompileResult> => {
+      const user = requireUser(req);
+      const { id } = parse(projectParams, req.params);
+      const body = parse(z.object({ draft: z.boolean().default(false) }).default({ draft: false }), req.body ?? {});
+      await ctx.access.require(user.id, id, 'viewer');
+      return ctx.compile.compile(id, user.id, { draft: body.draft });
+    },
+  );
 
   app.get('/:id/builds/latest', async (req): Promise<{ build: CompileResult | null; running: boolean }> => {
     const user = requireUser(req);

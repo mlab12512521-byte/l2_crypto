@@ -13,13 +13,14 @@
   },
   "scripts": {
     "build": "npm run build -w packages/shared && npm run build -w apps/server && npm run build -w apps/web",
-    "typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present && tsc -p e2e/tsconfig.json",
     "lint": "biome lint .",
     "test": "npm run test --workspaces --if-present",
     "dev:server": "npm run dev -w apps/server",
     "dev:web": "npm run dev -w apps/web",
     "format": "biome format --write .",
-    "check": "biome check ."
+    "check": "biome check .",
+    "test:e2e": "playwright test -c e2e/playwright.config.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",

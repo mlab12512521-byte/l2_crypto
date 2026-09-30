@@ -20,8 +20,22 @@ stops the app at startup with a message naming the variable (never its value).
 | `HOST` / `PORT` | `0.0.0.0` / `3000` | Listen address. |
 | `TRUST_PROXY_HOPS` | `0` | Number of reverse proxies whose `X-Forwarded-For` is trusted (1 behind the bundled Caddy). Needed for correct client IPs in rate limiting and audit logs. |
 | `LOG_LEVEL` | `info` | `fatal`…`trace`, or `silent`. |
+| `METRICS_PORT` | `9464` | Port for Prometheus metrics (`GET /metrics`), served separately from the application port and never published by the compose files; `0` disables it. See [operations.md](operations.md). |
 | `RUN_MIGRATIONS_ON_START` | `true` | Apply pending database migrations at startup (serialised with an advisory lock). |
 | `GIT_CA_BUNDLE` | — | PEM file with extra CA certificates trusted for external Git remotes (internal Git servers with a private CA). |
+
+## Docker Compose (host side)
+
+| Variable | Default | Description |
+|---|---|---|
+| `APP_BIND` | `127.0.0.1` | Host address the app port is published on. Keep `127.0.0.1` behind the bundled reverse proxy. `0.0.0.0` exposes plain HTTP to the network (trusted LAN tests only); `PUBLIC_URL` must then be `http://<host name or IP>:<APP_PORT>`. |
+| `APP_PORT` | `3000` | Host port for the app. |
+| `DOCKER_GID` | — | Group id of `/var/run/docker.sock` (`stat -c %g /var/run/docker.sock`), so the compile worker can start sandbox containers without root. |
+
+`PUBLIC_URL` must be **exactly** the address in the browser's address bar
+(scheme, host and port). A mismatch makes every sign-in fail with
+"Cross-origin request rejected", and an `https` URL served over plain
+`http` makes the browser drop the session cookie.
 
 ## Sessions and login protection
 

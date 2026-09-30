@@ -1,21 +1,30 @@
+import { lazy, type ReactNode, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { RequireAdmin, RequireAuth } from './auth/guards';
 import { AppShell } from './components/AppShell';
-import { ProjectPage } from './features/project/ProjectPage';
+import { Spinner } from './components/ui';
 import { AccountPage } from './pages/AccountPage';
-import { AdminLayout } from './pages/admin/AdminLayout';
-import { AuditPage } from './pages/admin/AuditPage';
-import { CompilationPage } from './pages/admin/CompilationPage';
-import { LdapPage } from './pages/admin/LdapPage';
-import { LogsPage } from './pages/admin/LogsPage';
-import { SettingsPage } from './pages/admin/SettingsPage';
-import { StatusPage } from './pages/admin/StatusPage';
-import { UsersPage } from './pages/admin/UsersPage';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { RegisterPage } from './pages/RegisterPage';
+
+// The editor/PDF viewer and the admin pages are loaded on demand, keeping the
+// login page and dashboard light.
+const ProjectPage = lazy(() => import('./features/project/ProjectPage').then((m) => ({ default: m.ProjectPage })));
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout').then((m) => ({ default: m.AdminLayout })));
+const AuditPage = lazy(() => import('./pages/admin/AuditPage').then((m) => ({ default: m.AuditPage })));
+const CompilationPage = lazy(() =>
+  import('./pages/admin/CompilationPage').then((m) => ({ default: m.CompilationPage })),
+);
+const LdapPage = lazy(() => import('./pages/admin/LdapPage').then((m) => ({ default: m.LdapPage })));
+const LogsPage = lazy(() => import('./pages/admin/LogsPage').then((m) => ({ default: m.LogsPage })));
+const SettingsPage = lazy(() => import('./pages/admin/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const StatusPage = lazy(() => import('./pages/admin/StatusPage').then((m) => ({ default: m.StatusPage })));
+const UsersPage = lazy(() => import('./pages/admin/UsersPage').then((m) => ({ default: m.UsersPage })));
+
+const page = (node: ReactNode) => <Suspense fallback={<Spinner />}>{node}</Suspense>;
 
 export function App() {
   return (
@@ -30,14 +39,7 @@ export function App() {
           </RequireAuth>
         }
       />
-      <Route
-        path="/project/:projectId"
-        element={
-          <RequireAuth>
-            <ProjectPage />
-          </RequireAuth>
-        }
-      />
+      <Route path="/project/:projectId" element={<RequireAuth>{page(<ProjectPage />)}</RequireAuth>} />
       <Route
         element={
           <RequireAuth>
@@ -47,21 +49,14 @@ export function App() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="account" element={<AccountPage />} />
-        <Route
-          path="admin"
-          element={
-            <RequireAdmin>
-              <AdminLayout />
-            </RequireAdmin>
-          }
-        >
-          <Route index element={<UsersPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="ldap" element={<LdapPage />} />
-          <Route path="compilation" element={<CompilationPage />} />
-          <Route path="status" element={<StatusPage />} />
-          <Route path="audit" element={<AuditPage />} />
-          <Route path="logs" element={<LogsPage />} />
+        <Route path="admin" element={<RequireAdmin>{page(<AdminLayout />)}</RequireAdmin>}>
+          <Route index element={page(<UsersPage />)} />
+          <Route path="settings" element={page(<SettingsPage />)} />
+          <Route path="ldap" element={page(<LdapPage />)} />
+          <Route path="compilation" element={page(<CompilationPage />)} />
+          <Route path="status" element={page(<StatusPage />)} />
+          <Route path="audit" element={page(<AuditPage />)} />
+          <Route path="logs" element={page(<LogsPage />)} />
         </Route>
         <Route path="404" element={<NotFoundPage />} />
         <Route path="*" element={<Navigate to="/404" replace />} />

@@ -11,3 +11,5 @@ playwright-report/
 test-results/
 .sandbox-ca.crt
 secrets/
+e2e/playwright-report/
+e2e/test-results/

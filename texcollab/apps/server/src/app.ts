@@ -36,6 +36,11 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
   await app.register(fastifyWebsocket, { options: { maxPayload: 16 * 1024 * 1024 } });
 
   registerSecurityHeaders(app, ctx);
+  app.addHook('onResponse', async (req, reply) => {
+    // Route templates (e.g. /api/projects/:id) keep label cardinality bounded.
+    const route = req.routeOptions.url ?? 'unmatched';
+    ctx.metrics.observeRequest(req.method, route, reply.statusCode, reply.elapsedTime / 1000);
+  });
   registerErrorHandling(app);
   registerAuthHooks(app, ctx);
   registerRawBodyParser(app);

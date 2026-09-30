@@ -62,6 +62,26 @@ docker build -t texcollab/texlive:dev docker/texlive      # compile-worker sandb
 docker build -t texcollab/test-ldap:dev docker/test-ldap  # LDAP tests (apps/server/src/modules/ldap)
 ```
 
+### End-to-end tests (Playwright)
+
+`e2e/` drives a real browser against a **running** instance (dev servers or
+the compose stack). Each run creates its own uniquely named users through the
+admin API, so it can be repeated on the same database.
+
+```sh
+E2E_BASE_URL=http://localhost:3001 \
+E2E_ADMIN_USERNAME=admin E2E_ADMIN_PASSWORD='…' \
+npm run test:e2e
+```
+
+* The instance's `PUBLIC_URL` must equal `E2E_BASE_URL`.
+* Raise `AUTH_RATE_LIMIT_PER_MINUTE` on that instance (e.g. `300`): the suite
+  signs in far more often than people do.
+* `E2E_SKIP_COMPILE=1` skips the checks that need a compile worker;
+  `E2E_CHROMIUM=/path/to/chromium` uses a specific browser binary.
+* Failures leave traces and screenshots in `e2e/test-results/`
+  (`npx playwright show-trace …`).
+
 ## Conventions
 
 - TypeScript strict mode everywhere; no `any`.

@@ -50,8 +50,9 @@ services:
     volumes:
       - appdata:/data
     ports:
-      # Bound to localhost; put the reverse proxy (see compose.prod.yml) in front for TLS.
-      - "127.0.0.1:${APP_PORT:-3000}:3000"
+      # Localhost only by default. APP_BIND=0.0.0.0 exposes plain HTTP to the network
+      # (trusted LANs only); for real use put the TLS reverse proxy in front instead.
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-3000}:3000"
     networks:
       - backend
       - egress

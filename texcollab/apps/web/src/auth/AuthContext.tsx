@@ -47,8 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await api.post('/api/auth/logout');
     } finally {
       setCsrfToken(null);
-      qc.clear();
+      // Update the observed "me" query in place (clear() would detach it from the
+      // mounted components, leaving the old user on screen), then drop all other
+      // cached data so nothing of this user survives into the next session.
       qc.setQueryData(ME_QUERY_KEY, null);
+      qc.removeQueries({ predicate: (q) => q.queryKey[0] !== ME_QUERY_KEY[0] });
     }
   }, [qc]);
 

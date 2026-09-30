@@ -59,7 +59,16 @@ export function registerAuthHooks(app: FastifyInstance, ctx: AppContext): void {
     if (SAFE_METHODS.has(req.method) || req.routeOptions.config.skipCsrf) return;
     const origin = req.headers.origin;
     if (origin !== undefined && origin !== ctx.config.publicOrigin) {
-      throw new AppError(403, 'csrf_failed', 'Cross-origin request rejected');
+      // Usually a PUBLIC_URL that does not match the address in the browser (scheme, host or port).
+      req.log.warn(
+        { origin: origin.slice(0, 200), expected: ctx.config.publicOrigin },
+        'request Origin does not match PUBLIC_URL',
+      );
+      throw new AppError(
+        403,
+        'csrf_failed',
+        `Cross-origin request rejected. This site is configured for ${ctx.config.publicOrigin}; open it at that address (or fix PUBLIC_URL).`,
+      );
     }
     if (req.headers['sec-fetch-site'] === 'cross-site') {
       throw new AppError(403, 'csrf_failed', 'Cross-site request rejected');

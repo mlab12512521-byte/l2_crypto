@@ -408,3 +408,25 @@ describe('compile authorization', () => {
     ).toBe(400);
   });
 });
+
+describe('compile fairness', () => {
+  it('limits how many compilations one user can run at once', async () => {
+    const projects = await Promise.all([1, 2, 3].map((i) => createProject(env.app, alice, `Busy ${i}`)));
+    worker.reply = { kind: 'hang', ms: 400 };
+    const results = await Promise.all(
+      projects.map((p) => request(env.app, alice, 'POST', `/api/projects/${p.id}/compile`, { payload: {} })),
+    );
+    const refused = results.filter((r) => r.statusCode === 429);
+    expect(refused).toHaveLength(1);
+    expect(refused[0]!.json().error.code).toBe('too_many_compilations');
+    // Others are not affected, and the slots are released afterwards.
+    worker.reply = success();
+    const other = await createProject(env.app, bob, 'Bob meanwhile');
+    expect((await request(env.app, bob, 'POST', `/api/projects/${other.id}/compile`, { payload: {} })).statusCode).toBe(
+      200,
+    );
+    expect(
+      (await request(env.app, alice, 'POST', `/api/projects/${projects[0]!.id}/compile`, { payload: {} })).statusCode,
+    ).toBe(200);
+  });
+});

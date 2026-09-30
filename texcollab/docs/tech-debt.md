@@ -4,7 +4,7 @@ Items knowingly deferred, with the phase expected to address them.
 
 | # | Item | Why deferred | Planned |
 |---|---|---|---|
-| TD1 | No `/metrics` endpoint yet (`METRICS_PORT` is parsed but unused). | Monitoring is part of the production phase. | Phase 10 |
+| ~~TD1~~ | ~~No `/metrics` endpoint.~~ Resolved in phase 9 (Prometheus metrics on `METRICS_PORT`). | — | done |
 | TD2 | `compose.yml` publishes the app directly on localhost without TLS; no reverse proxy yet. | Proxy/TLS belongs to production deployment. | Phase 10 |
 | ~~TD3~~ | ~~Admin "delete user" does not check for owned projects.~~ Resolved in phase 2 (409 unless `deleteOwnedProjects=true`). | — | done |
 | TD4 | Login rate limiting is per app instance (in-memory store). | Single instance by design (architecture §3.3); account lockout in the DB covers multi-instance brute force. | Revisit if scaling out |
@@ -13,7 +13,7 @@ Items knowingly deferred, with the phase expected to address them.
 | TD7 | Directory upload on the client sends one request per file (max 3 concurrent). | Gives per-file progress/errors and bounded memory. | — (by design) |
 | TD8 | Upload bodies that exceed limits are drained, not aborted, so bandwidth is wasted until the reverse proxy's body limit. | Aborting resets the connection and the browser never sees the error. | Phase 10: set proxy body limit |
 | ~~TD9~~ | ~~REST saving in the editor~~ Resolved in phase 5: the editor uses Yjs; the REST text API remains for scripts and uses optimistic concurrency. | — | done |
-| TD10 | The SPA ships as one ~870 kB (270 kB gzip) bundle. | Acceptable on a LAN; split editor/PDF code later. | Phase 9 |
+| ~~TD10~~ | ~~One large SPA bundle.~~ Resolved in phase 9: editor/PDF viewer and admin pages load on demand (login/dashboard ≈ 126 kB gzip; the editor chunk ≈ 420 kB gzip, mostly pdf.js). | — | done |
 | ~~TD11~~ | ~~No PDF refresh for collaborators~~ Resolved in phase 5 (`compiled` notification). | — | done |
 | TD12 | Compile outputs are per project (shared by all members), not per user. | Simpler; matches small teams. Per-user drafts could be added later. | — |
 | TD13 | `openin_any=p` does not stop `\input` of absolute paths inside the sandbox (documented in the security model). | Harmless while the container holds only TeX Live + the project; relies on never mounting anything else. | Keep in mind |

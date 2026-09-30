@@ -2,6 +2,7 @@ import type { Logger } from 'pino';
 import type { AppConfig } from './config.js';
 import type { Db } from './db/index.js';
 import type { LogRingBuffer } from './logger.js';
+import { Metrics } from './metrics.js';
 import { AuthService } from './modules/auth/service.js';
 import { SessionStore } from './modules/auth/sessions.js';
 import { CollabHub } from './modules/collab/hub.js';
@@ -44,6 +45,7 @@ export interface AppContext {
   versions: VersionService;
   remotes: RemoteService;
   ldap: LdapService;
+  metrics: Metrics;
 }
 
 export function createContext(config: AppConfig, db: Db, log: Logger, logRing?: LogRingBuffer): AppContext {
@@ -93,9 +95,12 @@ export function createContext(config: AppConfig, db: Db, log: Logger, logRing?: 
     accessChanged: (_projectId, userId) => collab.disconnectUser(userId),
     membersChanged: (projectId) => collab.notify(projectId, { type: 'members' }),
   });
+  const metrics = new Metrics(db, () => collab.stats());
+  compile.onCompiled((_projectId, result) => metrics.observeCompile(result.status, result.durationMs / 1000));
   const ldap = new LdapService(db, log, config.appSecret);
   auth.setExternalAuthenticator(ldap);
   return {
+    metrics,
     ldap,
     versions,
     remotes,

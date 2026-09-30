@@ -39,6 +39,9 @@ export function toCompileResult(row: BuildRow): CompileResult {
   };
 }
 
+/** Compilations one user may run at the same time (across projects). */
+export const MAX_CONCURRENT_PER_USER = 2;
+
 /** Listeners notified when a build finishes (e.g. to tell collaborators to refresh the PDF). */
 export type CompileListener = (projectId: string, result: CompileResult, userId: string | null) => void;
 
@@ -48,6 +51,8 @@ export type CompileListener = (projectId: string, result: CompileResult, userId:
  */
 export class CompileService {
   private readonly running = new Set<string>();
+  /** Running compilations per user, so one person cannot occupy all workers. */
+  private readonly runningByUser = new Map<string, number>();
   private readonly listeners: CompileListener[] = [];
 
   constructor(
@@ -75,11 +80,23 @@ export class CompileService {
     if (this.running.has(projectId)) {
       throw conflict('A compilation of this project is already running');
     }
+    const mine = this.runningByUser.get(userId) ?? 0;
+    if (mine >= MAX_CONCURRENT_PER_USER) {
+      throw new AppError(
+        429,
+        'too_many_compilations',
+        'You already have compilations running; wait for them to finish',
+      );
+    }
     this.running.add(projectId);
+    this.runningByUser.set(userId, mine + 1);
     try {
       return await this.run(projectId, userId, opts);
     } finally {
       this.running.delete(projectId);
+      const n = (this.runningByUser.get(userId) ?? 1) - 1;
+      if (n <= 0) this.runningByUser.delete(userId);
+      else this.runningByUser.set(userId, n);
     }
   }
 
