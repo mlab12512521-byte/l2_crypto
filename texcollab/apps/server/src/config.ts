@@ -60,6 +60,8 @@ const envSchema = z.object({
   COMPILE_WORKERS: z.string().default(''),
   /** Shared secret authenticating requests to compile workers (>= 32 chars). */
   WORKER_SECRET: z.string().optional(),
+  /** PEM bundle of extra CAs trusted for HTTPS Git remotes (e.g. an internal GitLab). */
+  GIT_CA_BUNDLE: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -95,6 +97,9 @@ export interface AppConfig {
   compile: {
     workers: string[];
     workerSecret: string | null;
+  };
+  git: {
+    caBundle: string | null;
   };
 }
 
@@ -180,6 +185,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
       workers: parseWorkerUrls(e.COMPILE_WORKERS),
       workerSecret: e.WORKER_SECRET ?? null,
     },
+    git: { caBundle: e.GIT_CA_BUNDLE ?? null },
   };
 }
 

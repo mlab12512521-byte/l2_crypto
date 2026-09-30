@@ -24,6 +24,8 @@ import type { DocumentSession, SaveStatus } from '../editor/document-session';
 import { type EditorDiagnostic, EditorPane } from '../editor/EditorPane';
 import { FileTree } from '../files/FileTree';
 import { buildTree, pathIndex } from '../files/tree-model';
+import { GitDialog } from '../history/GitDialog';
+import { HistoryView, versionsKey } from '../history/HistoryView';
 import { PdfViewer, type PdfViewerHandle } from '../pdf/PdfViewer';
 import { membersKey, ShareDialog } from '../sharing/ShareDialog';
 import { FilePreview } from './FilePreview';
@@ -41,6 +43,8 @@ export function ProjectPage() {
   const [wrap, setWrap] = useState(true);
   const [showLogs, setShowLogs] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [gitOpen, setGitOpen] = useState(false);
   const project = useQuery({ queryKey: ['project', projectId], queryFn: () => projectsApi.get(projectId) });
   const tree = useQuery({ queryKey: ['project', projectId, 'tree'], queryFn: () => projectsApi.tree(projectId) });
   const symbols = useQuery({
@@ -73,6 +77,7 @@ export function ProjectPage() {
     if (event.type === 'tree') refreshTree();
     else if (event.type === 'project') void qc.invalidateQueries({ queryKey: ['project', projectId], exact: true });
     else if (event.type === 'compiled' && event.by !== me?.id) void compiler.refresh();
+    else if (event.type === 'versions') void qc.invalidateQueries({ queryKey: versionsKey(projectId) });
     else if (event.type === 'members') {
       // My own role may have changed.
       void qc.invalidateQueries({ queryKey: ['project', projectId], exact: true });
@@ -282,6 +287,16 @@ export function ProjectPage() {
         </div>
         <div className="project-header-right">
           {me && <PresenceBar presence={live.presence} meId={me.id} state={live.state} files={byId} />}
+          <button
+            type="button"
+            className={`btn btn-small${historyOpen ? ' active' : ''}`}
+            onClick={() => setHistoryOpen((v) => !v)}
+          >
+            History
+          </button>
+          <button type="button" className="btn btn-small" onClick={() => setGitOpen(true)}>
+            Git
+          </button>
           <button type="button" className="btn btn-small" onClick={() => setSharing(true)}>
             Share
           </button>
@@ -298,156 +313,177 @@ export function ProjectPage() {
           </button>
         </div>
       )}
-      <Group
-        orientation="horizontal"
-        className="project-body"
-        defaultLayout={layout.initial}
-        onLayoutChanged={layout.save}
-      >
-        <Panel id="files" defaultSize="18%" minSize="160px" collapsible collapsedSize="0px" className="project-sidebar">
-          <FileTree
-            projectId={p.id}
-            tree={tree.data}
-            readOnly={readOnly}
-            mainFileId={p.mainFileId}
-            selectedId={tabs.active}
-            onSelect={(e: TreeEntity) => e.kind !== 'folder' && tabs.openTab(e.id)}
-            onChanged={refreshTree}
-            onSetMain={(e) => updateProject.mutate({ mainFileId: e.id })}
-            onError={setError}
-            upload={uploader.enqueue}
-            uploads={uploader.tasks}
-            onClearUploads={uploader.clearFinished}
-            presence={presenceByFile}
-          />
-        </Panel>
-        <Separator className="resize-handle" />
-        <Panel id="editor" defaultSize="42%" minSize="240px" className="editor-column">
-          <div className="tab-bar" role="tablist" aria-label="Open files">
-            {tabs.open.map((id) => {
-              const e = byId.get(id);
-              if (!e) return null;
-              const st = status[id]?.s;
-              const nErr = diagnosticsByEntity.get(id)?.filter((d) => d.severity === 'error').length ?? 0;
-              return (
-                <div key={id} className={`tab${id === tabs.active ? ' active' : ''}`} title={paths.get(id) ?? e.name}>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={id === tabs.active}
-                    className="tab-label"
-                    onClick={() => tabs.activate(id)}
-                  >
-                    {e.name}
-                    {nErr > 0 && <span className="count count-error">{nErr}</span>}
-                    {(st === 'dirty' || st === 'saving') && <span className="tab-dirty" title="Unsaved changes" />}
-                  </button>
-                  <button
-                    type="button"
-                    className="tab-close"
-                    aria-label={`Close ${e.name}`}
-                    onClick={() => tabs.closeTab(id)}
-                  >
-                    ×
-                  </button>
-                </div>
-              );
-            })}
-            <div className="tab-bar-tools">
-              <button
-                type="button"
-                className="btn btn-ghost btn-small"
-                title="Show the cursor position in the PDF"
-                onClick={() => void syncToPdf()}
-                disabled={!compiler.pdfBuildId || !tabs.active}
-              >
-                → PDF
-              </button>
-              <label className="checkbox small" title="Soft-wrap long lines">
-                <input type="checkbox" checked={wrap} onChange={(ev) => setWrap(ev.target.checked)} /> Wrap
-              </label>
-              {activeStatus && <SaveIndicator status={activeStatus.s} />}
-            </div>
-          </div>
-          {activeStatus?.m &&
-            (activeStatus.s === 'conflict' || activeStatus.s === 'error' || activeStatus.s === 'offline') && (
-              <div className="banner banner-error editor-banner" role="alert">
-                {activeStatus.m}
-              </div>
-            )}
-          <div className="editor-stack">
-            {tabs.open.length === 0 && <div className="empty-state muted">Open a file from the file tree.</div>}
-            {tabs.open.map((id) => {
-              const e = byId.get(id);
-              if (!e) return null;
-              if (e.kind === 'doc' && !live.connection) return null;
-              if (e.kind !== 'doc') {
+      {historyOpen && (
+        <HistoryView
+          project={p}
+          onClose={() => setHistoryOpen(false)}
+          onRestored={() => {
+            refreshTree();
+            setHistoryOpen(false);
+          }}
+        />
+      )}
+      {/* Kept mounted while History is open so editing sessions survive. */}
+      <div className="project-body-wrap" hidden={historyOpen}>
+        <Group
+          orientation="horizontal"
+          className="project-body"
+          defaultLayout={layout.initial}
+          onLayoutChanged={layout.save}
+        >
+          <Panel
+            id="files"
+            defaultSize="18%"
+            minSize="160px"
+            collapsible
+            collapsedSize="0px"
+            className="project-sidebar"
+          >
+            <FileTree
+              projectId={p.id}
+              tree={tree.data}
+              readOnly={readOnly}
+              mainFileId={p.mainFileId}
+              selectedId={tabs.active}
+              onSelect={(e: TreeEntity) => e.kind !== 'folder' && tabs.openTab(e.id)}
+              onChanged={refreshTree}
+              onSetMain={(e) => updateProject.mutate({ mainFileId: e.id })}
+              onError={setError}
+              upload={uploader.enqueue}
+              uploads={uploader.tasks}
+              onClearUploads={uploader.clearFinished}
+              presence={presenceByFile}
+            />
+          </Panel>
+          <Separator className="resize-handle" />
+          <Panel id="editor" defaultSize="42%" minSize="240px" className="editor-column">
+            <div className="tab-bar" role="tablist" aria-label="Open files">
+              {tabs.open.map((id) => {
+                const e = byId.get(id);
+                if (!e) return null;
+                const st = status[id]?.s;
+                const nErr = diagnosticsByEntity.get(id)?.filter((d) => d.severity === 'error').length ?? 0;
                 return (
-                  <div key={id} className="editor-pane" hidden={id !== tabs.active}>
-                    <FilePreview projectId={p.id} entity={e} />
+                  <div key={id} className={`tab${id === tabs.active ? ' active' : ''}`} title={paths.get(id) ?? e.name}>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={id === tabs.active}
+                      className="tab-label"
+                      onClick={() => tabs.activate(id)}
+                    >
+                      {e.name}
+                      {nErr > 0 && <span className="count count-error">{nErr}</span>}
+                      {(st === 'dirty' || st === 'saving') && <span className="tab-dirty" title="Unsaved changes" />}
+                    </button>
+                    <button
+                      type="button"
+                      className="tab-close"
+                      aria-label={`Close ${e.name}`}
+                      onClick={() => tabs.closeTab(id)}
+                    >
+                      ×
+                    </button>
                   </div>
                 );
+              })}
+              <div className="tab-bar-tools">
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-small"
+                  title="Show the cursor position in the PDF"
+                  onClick={() => void syncToPdf()}
+                  disabled={!compiler.pdfBuildId || !tabs.active}
+                >
+                  → PDF
+                </button>
+                <label className="checkbox small" title="Soft-wrap long lines">
+                  <input type="checkbox" checked={wrap} onChange={(ev) => setWrap(ev.target.checked)} /> Wrap
+                </label>
+                {activeStatus && <SaveIndicator status={activeStatus.s} />}
+              </div>
+            </div>
+            {activeStatus?.m &&
+              (activeStatus.s === 'conflict' || activeStatus.s === 'error' || activeStatus.s === 'offline') && (
+                <div className="banner banner-error editor-banner" role="alert">
+                  {activeStatus.m}
+                </div>
+              )}
+            <div className="editor-stack">
+              {tabs.open.length === 0 && <div className="empty-state muted">Open a file from the file tree.</div>}
+              {tabs.open.map((id) => {
+                const e = byId.get(id);
+                if (!e) return null;
+                if (e.kind === 'doc' && !live.connection) return null;
+                if (e.kind !== 'doc') {
+                  return (
+                    <div key={id} className="editor-pane" hidden={id !== tabs.active}>
+                      <FilePreview projectId={p.id} entity={e} />
+                    </div>
+                  );
+                }
+                return (
+                  <EditorPane
+                    key={id}
+                    createSession={() => {
+                      const s = live.connection!.openDocument(id);
+                      sessions.current.set(id, s);
+                      const destroy = s.destroy.bind(s);
+                      s.destroy = () => {
+                        if (sessions.current.get(id) === s) sessions.current.delete(id);
+                        destroy();
+                      };
+                      return s;
+                    }}
+                    readOnly={readOnly}
+                    wrap={wrap}
+                    visible={id === tabs.active}
+                    diagnostics={diagnosticsByEntity.get(id) ?? NO_DIAGNOSTICS}
+                    callbacks={{ symbols: () => symbolsRef.current, onCompile: () => void compiler.compile() }}
+                    onStatus={(s, m) => onStatus(id, s, m)}
+                    onView={(v) => onView(id, v)}
+                  />
+                );
+              })}
+            </div>
+            {showLogs && result && (
+              <LogsPanel projectId={p.id} result={result} onOpen={openDiagnostic} onClose={() => setShowLogs(false)} />
+            )}
+          </Panel>
+          <Separator className="resize-handle" />
+          <Panel id="pdf" defaultSize="40%" minSize="200px" collapsible collapsedSize="0px" className="pdf-column">
+            <PdfViewer
+              ref={pdfRef}
+              url={compiler.pdfUrl}
+              downloadUrl={
+                compiler.pdfBuildId ? projectsApi.buildFileUrl(p.id, compiler.pdfBuildId, 'output.pdf', true) : null
               }
-              return (
-                <EditorPane
-                  key={id}
-                  createSession={() => {
-                    const s = live.connection!.openDocument(id);
-                    sessions.current.set(id, s);
-                    const destroy = s.destroy.bind(s);
-                    s.destroy = () => {
-                      if (sessions.current.get(id) === s) sessions.current.delete(id);
-                      destroy();
-                    };
-                    return s;
-                  }}
-                  readOnly={readOnly}
-                  wrap={wrap}
-                  visible={id === tabs.active}
-                  diagnostics={diagnosticsByEntity.get(id) ?? NO_DIAGNOSTICS}
-                  callbacks={{ symbols: () => symbolsRef.current, onCompile: () => void compiler.compile() }}
-                  onStatus={(s, m) => onStatus(id, s, m)}
-                  onView={(v) => onView(id, v)}
-                />
-              );
-            })}
-          </div>
-          {showLogs && result && (
-            <LogsPanel projectId={p.id} result={result} onOpen={openDiagnostic} onClose={() => setShowLogs(false)} />
-          )}
-        </Panel>
-        <Separator className="resize-handle" />
-        <Panel id="pdf" defaultSize="40%" minSize="200px" collapsible collapsedSize="0px" className="pdf-column">
-          <PdfViewer
-            ref={pdfRef}
-            url={compiler.pdfUrl}
-            downloadUrl={
-              compiler.pdfBuildId ? projectsApi.buildFileUrl(p.id, compiler.pdfBuildId, 'output.pdf', true) : null
-            }
-            onPageDoubleClick={(page, x, y) => void syncToCode(page, x, y)}
-            placeholder={
-              compiler.compiling ? (
-                <Spinner label="Compiling…" />
-              ) : result ? (
-                <div className="muted">
-                  <p>{result.message ?? 'No PDF was produced.'}</p>
-                  <button type="button" className="btn btn-small" onClick={() => setShowLogs(true)}>
-                    Show messages
-                  </button>
-                </div>
-              ) : (
-                <div className="muted">
-                  <p>Compile the project to see the PDF here.</p>
-                  <button type="button" className="btn btn-primary btn-small" onClick={() => void compiler.compile()}>
-                    Compile
-                  </button>
-                </div>
-              )
-            }
-          />
-        </Panel>
-      </Group>
+              onPageDoubleClick={(page, x, y) => void syncToCode(page, x, y)}
+              placeholder={
+                compiler.compiling ? (
+                  <Spinner label="Compiling…" />
+                ) : result ? (
+                  <div className="muted">
+                    <p>{result.message ?? 'No PDF was produced.'}</p>
+                    <button type="button" className="btn btn-small" onClick={() => setShowLogs(true)}>
+                      Show messages
+                    </button>
+                  </div>
+                ) : (
+                  <div className="muted">
+                    <p>Compile the project to see the PDF here.</p>
+                    <button type="button" className="btn btn-primary btn-small" onClick={() => void compiler.compile()}>
+                      Compile
+                    </button>
+                  </div>
+                )
+              }
+            />
+          </Panel>
+        </Group>
+      </div>
       {sharing && me && <ShareDialog project={p} meId={me.id} onClose={() => setSharing(false)} />}
+      {gitOpen && <GitDialog project={p} onClose={() => setGitOpen(false)} onPulled={refreshTree} />}
     </div>
   );
 }

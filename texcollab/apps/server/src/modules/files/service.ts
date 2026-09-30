@@ -509,6 +509,164 @@ export class FileService {
     await this.changed(projectId, userId);
   }
 
+  /**
+   * Make the project's files exactly `target` (used by version restore and
+   * Git pull). Paths that exist keep their entity (open editors stay
+   * attached; text changes are applied as collaborative edits); files not in
+   * `target` are deleted, and folders left empty are removed.
+   */
+  async applyFiles(
+    projectId: string,
+    target: Array<{ path: string; content: Buffer }>,
+    userId: string | null,
+  ): Promise<{ created: number; updated: number; deleted: number }> {
+    const limits = await this.getLimits();
+    if (target.length > limits.maxEntitiesPerProject) throw new AppError(413, 'quota_exceeded', 'Too many files');
+    const total = target.reduce((n, f) => n + f.content.length, 0);
+    if (total > limits.maxProjectSizeBytes)
+      throw new AppError(413, 'quota_exceeded', 'The files exceed the project storage limit');
+
+    // Classify and store content before touching the tree.
+    const prepared: Array<{ segments: string[]; text: string | null; blob: { hash: string; size: number } | null }> =
+      [];
+    for (const f of target) {
+      const parsed = parseRelativePath(f.path);
+      if ('error' in parsed) throw badRequest(`Invalid path "${f.path.slice(0, 100)}": ${parsed.error}`);
+      const name = parsed.segments[parsed.segments.length - 1]!;
+      const text =
+        isTextFileName(name) && f.content.length <= limits.maxTextFileSizeBytes ? decodeText(f.content) : null;
+      const blob = text === null ? await this.blobs.putBuffer(f.content) : null;
+      prepared.push({ segments: parsed.segments, text, blob });
+    }
+
+    const docWrites: Array<{ id: string; text: string }> = [];
+    const deletedDocs: string[] = [];
+    const docsBefore = (await this.entities(projectId)).filter((e) => e.kind === 'doc').map((e) => e.id);
+    const counts = { created: 0, updated: 0, deleted: 0 };
+    await this.db.transaction().execute(async (trx) => {
+      const rootId = await this.rootId(projectId, trx);
+      let rows = await this.entities(projectId, trx);
+      let paths = FileService.paths(rows);
+      const byPath = new Map<string, EntityRow>();
+      for (const r of rows) {
+        const p = paths.get(r.id);
+        if (p !== undefined) byPath.set(p, r);
+      }
+      const wanted = new Set(prepared.map((f) => f.segments.join('/')));
+      const wantedDirs = new Set<string>();
+      for (const f of prepared)
+        for (let i = 1; i < f.segments.length; i++) wantedDirs.add(f.segments.slice(0, i).join('/'));
+
+      // 1. Remove files that are not in the target, and anything whose kind must change.
+      for (const [p, e] of byPath) {
+        const keepFile = e.kind !== 'folder' && wanted.has(p);
+        const keepFolder = e.kind === 'folder' && wantedDirs.has(p);
+        if (keepFile || keepFolder || e.kind === 'folder') continue;
+        await trx.deleteFrom('project_entities').where('id', '=', e.id).execute();
+        if (e.kind === 'doc') deletedDocs.push(e.id);
+        counts.deleted++;
+      }
+      // Folders standing where a file must go, and files standing where a folder must go.
+      for (const [p, e] of byPath) {
+        if ((e.kind === 'folder' && wanted.has(p)) || (e.kind !== 'folder' && wantedDirs.has(p))) {
+          await trx.deleteFrom('project_entities').where('id', '=', e.id).execute();
+          counts.deleted++;
+        }
+      }
+
+      // 2. Create or update target files.
+      rows = await this.entities(projectId, trx);
+      paths = FileService.paths(rows);
+      const current = new Map<string, EntityRow>();
+      for (const r of rows) {
+        const p = paths.get(r.id);
+        if (p !== undefined) current.set(p, r);
+      }
+      for (const f of prepared) {
+        const p = f.segments.join('/');
+        const existing = current.get(p);
+        const kind = f.text !== null ? 'doc' : 'file';
+        if (existing && existing.kind !== kind) {
+          await trx.deleteFrom('project_entities').where('id', '=', existing.id).execute();
+          if (existing.kind === 'doc') deletedDocs.push(existing.id);
+        } else if (existing && kind === 'doc') {
+          docWrites.push({ id: existing.id, text: f.text! });
+          continue;
+        } else if (existing && kind === 'file') {
+          if (existing.blob_hash !== f.blob!.hash) {
+            await this.upsertBlob(trx, f.blob!.hash, f.blob!.size);
+            await trx
+              .updateTable('project_entities')
+              .set({ blob_hash: f.blob!.hash, size: f.blob!.size, updated_at: new Date() })
+              .where('id', '=', existing.id)
+              .execute();
+            counts.updated++;
+          }
+          continue;
+        }
+        const parentId = await this.ensureFolders(projectId, rootId, f.segments.slice(0, -1), userId, trx);
+        const name = f.segments[f.segments.length - 1]!;
+        if (kind === 'doc') {
+          const row = await this.insert(trx, {
+            projectId,
+            parentId,
+            kind: 'doc',
+            name,
+            size: Buffer.byteLength(f.text!),
+            userId,
+          });
+          await trx
+            .insertInto('doc_contents')
+            .values({ entity_id: row.id, text: f.text!, content_hash: contentHash(f.text!), updated_by: userId })
+            .execute();
+        } else {
+          await this.upsertBlob(trx, f.blob!.hash, f.blob!.size);
+          await this.insert(trx, {
+            projectId,
+            parentId,
+            kind: 'file',
+            name,
+            blobHash: f.blob!.hash,
+            size: f.blob!.size,
+            userId,
+          });
+        }
+        counts.created++;
+      }
+
+      // 3. Remove folders that ended up empty (Git does not record empty folders).
+      for (;;) {
+        const empty = await sql<{ id: string }>`
+          SELECT f.id FROM project_entities f
+          WHERE f.project_id = ${projectId} AND f.kind = 'folder' AND f.parent_id IS NOT NULL
+            AND NOT EXISTS (SELECT 1 FROM project_entities c WHERE c.parent_id = f.id)`.execute(trx);
+        if (empty.rows.length === 0) break;
+        await trx
+          .deleteFrom('project_entities')
+          .where(
+            'id',
+            'in',
+            empty.rows.map((r) => r.id),
+          )
+          .execute();
+      }
+    });
+
+    // Every document that no longer exists (also those removed with their folder) is closed for live editors.
+    const docsAfter = new Set((await this.entities(projectId)).filter((e) => e.kind === 'doc').map((e) => e.id));
+    const gone = docsBefore.filter((id) => !docsAfter.has(id));
+    if (gone.length || deletedDocs.length) for (const fn of this.deletedListeners) fn(gone);
+    for (const w of docWrites) {
+      const cur = await this.docWriter.read(w.id);
+      if (cur?.text !== w.text) {
+        await this.docWriter.write(w.id, w.text, userId);
+        counts.updated++;
+      }
+    }
+    await this.changed(projectId, userId);
+    return counts;
+  }
+
   // ---------------------------------------------------------------- documents
 
   async readDoc(projectId: string, entityId: string): Promise<DocContent> {

@@ -242,3 +242,41 @@ export interface MembersResponse {
   /** Only returned to the owner. */
   invitations: ProjectInvitation[];
 }
+
+export type VersionKind = 'auto' | 'named' | 'restore' | 'import' | 'git-pull' | 'initial';
+
+export interface VersionInfo {
+  id: string;
+  commitSha: string;
+  kind: VersionKind;
+  label: string | null;
+  createdAt: string;
+  createdBy: PublicUser | null;
+  contributors: PublicUser[];
+}
+
+export type ChangeStatus = 'added' | 'modified' | 'deleted' | 'renamed';
+
+export interface FileChange {
+  status: ChangeStatus;
+  path: string;
+  /** Previous path for renames. */
+  oldPath?: string;
+  binary: boolean;
+}
+
+export interface VersionDiff {
+  from: string | null;
+  to: string;
+  changes: FileChange[];
+}
+
+export interface GitRemoteInfo {
+  url: string;
+  branch: string;
+  username: string | null;
+  hasSecret: boolean;
+  lastPushAt: string | null;
+  lastPullAt: string | null;
+  lastError: string | null;
+}

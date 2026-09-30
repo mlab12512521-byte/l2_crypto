@@ -21,6 +21,16 @@ export function startBackgroundJobs(ctx: AppContext): () => void {
     if (n > 0) ctx.log.info({ closed: n }, 'closed collaboration connections with ended sessions');
   });
 
+  every(60_000, 'auto-versioning', async () => {
+    const n = await ctx.versions.runAutoVersioning();
+    if (n > 0) ctx.log.info({ created: n }, 'created automatic versions');
+  });
+
+  every(24 * 60 * 60_000, 'git-maintenance', async () => {
+    const n = await ctx.versions.maintainRepositories();
+    ctx.log.info({ repositories: n }, 'git maintenance finished');
+  });
+
   every(60 * 60_000, 'blob-gc', async () => {
     const n = await ctx.files.collectGarbage(24 * 60 * 60_000);
     if (n > 0) ctx.log.info({ deleted: n }, 'deleted unreferenced blobs');

@@ -143,7 +143,35 @@ export interface ProjectInvitationsTable {
   expires_at: Timestamp;
 }
 
+export type VersionKind = 'auto' | 'named' | 'restore' | 'import' | 'git-pull' | 'initial';
+
+export interface VersionsTable {
+  id: Generated<string>;
+  project_id: string;
+  commit_sha: string;
+  kind: VersionKind;
+  label: string | null;
+  created_at: Generated<Date>;
+  created_by: string | null;
+  contributors: ColumnType<string[], string[] | undefined, string[]>;
+}
+
+export interface GitRemotesTable {
+  project_id: string;
+  url: string;
+  branch: Generated<string>;
+  username: string | null;
+  secret_encrypted: Buffer | null;
+  updated_by: string | null;
+  updated_at: Generated<Date>;
+  last_push_at: NullableTimestamp;
+  last_pull_at: NullableTimestamp;
+  last_error: string | null;
+}
+
 export interface Database {
+  versions: VersionsTable;
+  git_remotes: GitRemotesTable;
   project_invitations: ProjectInvitationsTable;
   project_changes: ProjectChangesTable;
   compile_builds: CompileBuildsTable;

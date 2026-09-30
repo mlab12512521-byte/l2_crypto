@@ -35,6 +35,30 @@ export const settingSchemas = {
       keepBuilds: z.number().int().min(1).max(50).default(3),
     })
     .prefault({}),
+  versioning: z
+    .object({
+      enabled: z.boolean().default(true),
+      /** Create a version after this many minutes without edits. */
+      idleMinutes: z.number().int().min(1).max(1440).default(5),
+      /** ...or at the latest this long after the first unsaved edit. */
+      maxMinutes: z.number().int().min(5).max(10_080).default(30),
+    })
+    .prefault({}),
+  git: z
+    .object({
+      /** Host names (e.g. github.com, gitlab.example.org) allowed as remotes; empty = any public host. */
+      allowedHosts: z
+        .array(
+          z
+            .string()
+            .trim()
+            .toLowerCase()
+            .regex(/^[a-z0-9.-]+$/),
+        )
+        .max(100)
+        .default([]),
+    })
+    .prefault({}),
 } as const;
 
 export type SettingKey = keyof typeof settingSchemas;

@@ -43,6 +43,7 @@ export async function projectRoutes(app: FastifyInstance, ctx: AppContext): Prom
     const user = requireUser(req);
     const body = parse(createSchema, req.body);
     const id = await ctx.projects.create(user.id, body.name, { withTemplate: body.template === 'article' });
+    await ctx.versions.createVersion(id, { kind: 'initial', userId: user.id });
     await audit(ctx.db, {
       actorId: user.id,
       action: 'project.created',
@@ -83,6 +84,7 @@ export async function projectRoutes(app: FastifyInstance, ctx: AppContext): Prom
       await ctx.projects.delete(id);
       throw err;
     }
+    await ctx.versions.createVersion(id, { kind: 'import', userId: user.id });
     await audit(ctx.db, {
       actorId: user.id,
       action: 'project.imported',

@@ -21,6 +21,7 @@ stops the app at startup with a message naming the variable (never its value).
 | `TRUST_PROXY_HOPS` | `0` | Number of reverse proxies whose `X-Forwarded-For` is trusted (1 behind the bundled Caddy). Needed for correct client IPs in rate limiting and audit logs. |
 | `LOG_LEVEL` | `info` | `fatal`…`trace`, or `silent`. |
 | `RUN_MIGRATIONS_ON_START` | `true` | Apply pending database migrations at startup (serialised with an advisory lock). |
+| `GIT_CA_BUNDLE` | — | PEM file with extra CA certificates trusted for external Git remotes (internal Git servers with a private CA). |
 
 ## Sessions and login protection
 
@@ -50,3 +51,8 @@ Stored in the database (`system_settings`), editable under
 | `projectLimits.maxTextFileSizeMb` | `5` | Largest text file opened in the editor (bigger ones are stored as binary). |
 | `projectLimits.maxProjectSizeMb` | `1024` | Total size of one project's files (also caps ZIP imports by decompressed size). |
 | `projectLimits.maxEntitiesPerProject` | `5000` | Files + folders per project. |
+| `compileLimits.*` | 120 s, 2048 MB, 2 CPUs, 3 builds | Per-compilation limits (*Admin → Compilation*). |
+| `versioning.enabled` | `true` | Create automatic versions. |
+| `versioning.idleMinutes` | `5` | Automatic version after this long without edits… |
+| `versioning.maxMinutes` | `30` | …or at the latest this long after the first unsaved edit. |
+| `git.allowedHosts` | `[]` | Host names allowed as external Git remotes; empty = any public host. Hosts on private addresses must be listed. |

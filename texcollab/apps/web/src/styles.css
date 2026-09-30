@@ -203,6 +203,7 @@ input[type="text"],
 input[type="password"],
 input[type="email"],
 input[type="search"],
+input[type="number"],
 input:not([type]),
 select,
 textarea {
@@ -1395,4 +1396,215 @@ input[aria-invalid="true"] {
 }
 .modal {
   width: min(620px, calc(100vw - 2rem));
+}
+
+/* History */
+.project-body-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.project-body-wrap[hidden] {
+  display: none;
+}
+.history {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  background: var(--surface);
+}
+.history-sidebar {
+  width: 300px;
+  flex: none;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.history-dirty {
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.version-list {
+  overflow: auto;
+  flex: 1;
+}
+.version-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.version-day {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0;
+  padding: 0.6rem 0.75rem 0.25rem;
+  background: var(--surface-2);
+  position: sticky;
+  top: 0;
+}
+.version {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  gap: 0 0.5rem;
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-left: 3px solid transparent;
+  background: none;
+  padding: 0.4rem 0.75rem;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+.version:hover {
+  background: var(--surface-2);
+}
+.version.selected {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+.version-time {
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.version-who {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.version-label {
+  grid-column: 2;
+  font-size: 0.8em;
+  color: var(--accent);
+  font-weight: 600;
+}
+.history-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.history-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.history-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+.history-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+.change-list {
+  width: 260px;
+  flex: none;
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+  border-right: 1px solid var(--border);
+  overflow: auto;
+}
+.change-empty {
+  padding: 0.75rem;
+}
+.change {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  padding: 0.3rem 0.75rem;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+.change:hover {
+  background: var(--surface-2);
+}
+.change.selected {
+  background: var(--accent-soft);
+}
+.change-status {
+  font-family: var(--mono);
+  font-weight: 700;
+  width: 1rem;
+}
+.change-added .change-status {
+  color: var(--success);
+}
+.change-deleted .change-status {
+  color: var(--danger);
+}
+.change-modified .change-status {
+  color: var(--warn);
+}
+.change-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.diff-pane {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+.diff-title {
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.diff {
+  border-collapse: collapse;
+  width: 100%;
+  font: 12.5px / 1.5 var(--mono);
+}
+.diff td {
+  padding: 0 0.5rem;
+  vertical-align: top;
+}
+.diff-no {
+  width: 3.5rem;
+  text-align: right;
+  color: var(--text-muted);
+  user-select: none;
+  background: var(--surface-2);
+}
+.diff-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.diff-sign {
+  display: inline-block;
+  width: 1rem;
+  user-select: none;
+  color: var(--text-muted);
+}
+.diff-add {
+  background: var(--success-soft);
+}
+.diff-del {
+  background: var(--danger-soft);
+}
+.diff-gap td {
+  color: var(--text-muted);
+  background: var(--surface-2);
+  padding: 0.15rem 0.75rem;
+  font-style: italic;
+}
+.btn.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
 }

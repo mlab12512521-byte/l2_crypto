@@ -8,6 +8,8 @@ import { CollabHub } from './modules/collab/hub.js';
 import { CompileService } from './modules/compile/service.js';
 import { WorkerPool } from './modules/compile/worker-client.js';
 import { FileService } from './modules/files/service.js';
+import { RemoteService } from './modules/git/remote.js';
+import { VersionService } from './modules/git/versions.js';
 import { ProjectAccess } from './modules/projects/access.js';
 import { ProjectService } from './modules/projects/service.js';
 import { limitsInBytes, SettingsService } from './modules/settings/service.js';
@@ -38,6 +40,8 @@ export interface AppContext {
   compile: CompileService;
   collab: CollabHub;
   sharing: SharingService;
+  versions: VersionService;
+  remotes: RemoteService;
 }
 
 export function createContext(config: AppConfig, db: Db, log: Logger, logRing?: LogRingBuffer): AppContext {
@@ -69,6 +73,18 @@ export function createContext(config: AppConfig, db: Db, log: Logger, logRing?: 
   compile.onCompiled((projectId, result, userId) =>
     collab.notify(projectId, { type: 'compiled', buildId: result.buildId, status: result.status, by: userId }),
   );
+  const versions = new VersionService(db, files, blobs, paths, settings, log);
+  versions.onVersionCreated((projectId) => collab.notify(projectId, { type: 'versions' }));
+  const remotes = new RemoteService(
+    db,
+    versions,
+    files,
+    settings,
+    config.appSecret,
+    paths.importTmpDir,
+    log,
+    config.git.caBundle,
+  );
   const sharing = new SharingService(db);
   sharing.setHooks({
     // Re-authorise live connections: removed users lose access, changed roles get the new read/write mode.
@@ -76,6 +92,8 @@ export function createContext(config: AppConfig, db: Db, log: Logger, logRing?: 
     membersChanged: (projectId) => collab.notify(projectId, { type: 'members' }),
   });
   return {
+    versions,
+    remotes,
     sharing,
     collab,
     config,

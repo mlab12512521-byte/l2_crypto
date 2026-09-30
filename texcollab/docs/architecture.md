@@ -51,6 +51,7 @@ default; all of them are cheap to revisit except where noted.
 | D12 | Shell escape | **Disabled, not configurable per project.** Restricted mode is also off (`shell_escape=f`). Packages needing it (`minted`, `svg` conversion) will not work — documented. | Security over convenience; the sandbox is defence-in-depth, not the only control. |
 | D14 | LaTeX grammar for the editor | CodeMirror's **MIT-licensed `stex` stream mode** plus our own completion, folding and highlighting — *not* `codemirror-lang-latex`. | That package (a port of Overleaf's Lezer grammar) is **AGPL-3.0**; bundling it into a network service would oblige the whole application to be offered under AGPL. That is a licensing decision for the owners of this deployment, not something to adopt implicitly. The editor module isolates the language support (`apps/web/src/features/editor/latex-language.ts`), so switching later is a one-file change. |
 | D13 | Redis | **Not included** initially. The single app process holds the collaboration hub and presence. Horizontal scaling is enabled later by adding Redis and the Hocuspocus Redis extension (no data model change). | "Do not introduce unnecessary services". |
+| D15 | External Git transport | **HTTPS only** (token as password); no SSH remotes. | Every hosting service offers HTTPS tokens; SSH would need key management UI, known-hosts handling and a second SSRF surface. Can be added behind the provider abstraction later. |
 
 ## 3. Architecture
 
@@ -418,24 +419,32 @@ host (the worker is reached over HTTP, so it can live elsewhere).
 ## 10. Git and versioning architecture
 
 * One **bare repository** per project at `/data/git/<projectId>.git`
-  (path built from a validated UUID only). No hooks, no working tree.
-* Snapshots are written with plumbing (`hash-object -w`, `mktree`,
-  `commit-tree`, `update-ref`) from the database state, so no filesystem
-  checkout of user paths ever happens on the host.
-* Every `versions` row points at a commit on `refs/heads/main`; commit
-  author is the triggering user (or "TeXCollab" for automatic versions with
-  `Co-authored-by` trailers for all contributors).
-* **Diff:** `git diff-tree` / `git diff` between commits, or between a commit
-  and a fresh snapshot of the current state; rendered as side-by-side text
-  diffs, binary changes summarised.
-* **External remotes:** `GitRemoteProvider` interface with a generic
-  implementation for any HTTPS (token/basic) or SSH (deploy key) remote —
-  GitHub, GitLab, Gitea and plain servers all work through it. Credentials
-  are encrypted at rest and passed to git via `GIT_ASKPASS` / a temporary
-  `GIT_SSH_COMMAND` identity file, never on the command line or in URLs.
-  `protocol.allow` restricts transports to `https`/`ssh`
-  (no `file://`, no `ext::`); remote URLs are validated; admins can
-  restrict allowed hosts.
+  (path built from a validated UUID only). No hooks, no working tree, no
+  system/global git config.
+* Snapshots are written from the database state with `git fast-import`
+  into a temporary ref, then moved to `refs/heads/main` with a
+  compare-and-swap `update-ref`, so no filesystem checkout of user paths ever
+  happens on the host.
+* Every `versions` row points at a commit on `main`; commit author is the
+  triggering user (pseudonymous address) or "TeXCollab" for automatic
+  versions, with `Co-authored-by` trailers for all contributors.
+* **Auto-versioning** job (every minute): idle ≥ 5 min or dirty ≥ 30 min,
+  per-project `pg_try_advisory_lock` so several instances are safe.
+* **Diff:** `git diff-tree` between commits, or between a commit and a
+  fresh snapshot of the current state; text shown side by side, binaries
+  summarised.
+* **Restore** is non-destructive: save current state, apply the old tree
+  in place through `FileService.applyFiles` (ids preserved, live editors
+  updated), record a new version.
+* **External remotes:** a provider list (GitHub, GitLab, Gitea/Forgejo,
+  generic) over one HTTPS implementation (decision D15). Credentials are
+  encrypted at rest and passed via `GIT_ASKPASS`; URLs are validated and
+  resolved against private ranges (SSRF), redirects are disabled, admins can
+  restrict allowed hosts. Pull = fetch + fast-forward or
+  `merge-tree --write-tree`; conflicts are reported and change nothing.
+* Daily `git gc` for recently active projects.
+
+Details: [git-integration.md](git-integration.md).
 
 ## 11. Deployment architecture
 

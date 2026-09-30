@@ -15,6 +15,7 @@ import { authRoutes } from './modules/auth/routes.js';
 import { collabRoutes } from './modules/collab/routes.js';
 import { compileRoutes } from './modules/compile/routes.js';
 import { fileRoutes } from './modules/files/routes.js';
+import { gitRoutes } from './modules/git/routes.js';
 import { healthRoutes } from './modules/health/routes.js';
 import { projectRoutes } from './modules/projects/routes.js';
 import { sharingRoutes } from './modules/sharing/routes.js';
@@ -47,6 +48,7 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
   await app.register(async (api) => fileRoutes(api, ctx), { prefix: '/api/projects' });
   await app.register(async (api) => compileRoutes(api, ctx), { prefix: '/api/projects' });
   await app.register(async (api) => sharingRoutes(api, ctx), { prefix: '/api' });
+  await app.register(async (api) => gitRoutes(api, ctx), { prefix: '/api/projects' });
 
   await registerSpa(app, ctx);
   return app;

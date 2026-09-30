@@ -21,3 +21,6 @@ Items knowingly deferred, with the phase expected to address them.
 | TD15 | `RestDocumentSession` (single-user REST editing) is kept but unused by the SPA. | Useful fallback if WebSockets are blocked by a proxy; small. | Decide in phase 9 |
 | TD16 | Hocuspocus runs in the app process; horizontal scaling needs the Redis extension and sticky sessions. | Single instance by design for ~30 users. | If scaling out |
 | TD17 | Invitations are not e-mailed; the inviter tells the invitee. Re-authorisation after role changes drops all of that user's live connections (they reconnect automatically). | No SMTP dependency (decision D3); simple and correct. | Add SMTP if wanted |
+| TD18 | External remotes are HTTPS only; no SSH (decision D15). | Tokens cover all common hosts; SSH needs key/known-hosts management. | If requested |
+| TD19 | Empty folders are not recorded in versions (Git cannot store empty directories); restoring removes folders that are empty. | Matches Git semantics; a placeholder file would pollute pushed repositories. | — |
+| TD20 | `git fetch` from a remote is bounded by a timeout, not by size; a huge remote repository could fill the disk. | Only owners configure remotes and admins can allow-list hosts. | Phase 9: check size after fetch / quota |
