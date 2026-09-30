@@ -25,6 +25,7 @@ import { type EditorDiagnostic, EditorPane } from '../editor/EditorPane';
 import { FileTree } from '../files/FileTree';
 import { buildTree, pathIndex } from '../files/tree-model';
 import { PdfViewer, type PdfViewerHandle } from '../pdf/PdfViewer';
+import { membersKey, ShareDialog } from '../sharing/ShareDialog';
 import { FilePreview } from './FilePreview';
 import { useStoredLayout } from './layout';
 import { useTabs } from './useTabs';
@@ -39,6 +40,7 @@ export function ProjectPage() {
   const [status, setStatus] = useState<Record<string, { s: SaveStatus; m?: string | undefined }>>({});
   const [wrap, setWrap] = useState(true);
   const [showLogs, setShowLogs] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const project = useQuery({ queryKey: ['project', projectId], queryFn: () => projectsApi.get(projectId) });
   const tree = useQuery({ queryKey: ['project', projectId, 'tree'], queryFn: () => projectsApi.tree(projectId) });
   const symbols = useQuery({
@@ -71,6 +73,11 @@ export function ProjectPage() {
     if (event.type === 'tree') refreshTree();
     else if (event.type === 'project') void qc.invalidateQueries({ queryKey: ['project', projectId], exact: true });
     else if (event.type === 'compiled' && event.by !== me?.id) void compiler.refresh();
+    else if (event.type === 'members') {
+      // My own role may have changed.
+      void qc.invalidateQueries({ queryKey: ['project', projectId], exact: true });
+      void qc.invalidateQueries({ queryKey: membersKey(projectId) });
+    }
   });
   const uploader = useUploader(projectId, refreshTree);
   const tabs = useTabs(projectId, tree.data?.entities, project.data?.mainFileId ?? null);
@@ -275,6 +282,9 @@ export function ProjectPage() {
         </div>
         <div className="project-header-right">
           {me && <PresenceBar presence={live.presence} meId={me.id} state={live.state} files={byId} />}
+          <button type="button" className="btn btn-small" onClick={() => setSharing(true)}>
+            Share
+          </button>
           <a className="btn btn-small" href={projectsApi.exportUrl(p.id)} download>
             Download ZIP
           </a>
@@ -437,6 +447,7 @@ export function ProjectPage() {
           />
         </Panel>
       </Group>
+      {sharing && me && <ShareDialog project={p} meId={me.id} onClose={() => setSharing(false)} />}
     </div>
   );
 }

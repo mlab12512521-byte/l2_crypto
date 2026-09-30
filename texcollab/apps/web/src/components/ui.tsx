@@ -61,7 +61,10 @@ export function Modal({
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const dialog = ref.current;
-    if (dialog && !dialog.open) dialog.showModal?.();
+    if (dialog && !dialog.open) {
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', ''); // very old browsers / test DOMs
+    }
     return () => dialog?.close?.();
   }, []);
   return (

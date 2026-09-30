@@ -20,3 +20,4 @@ Items knowingly deferred, with the phase expected to address them.
 | TD14 | Compile requests run synchronously in the HTTP request (up to the time limit). | Fine for ~30 users; a job queue with push notifications would scale better. | Revisit if scaling out |
 | TD15 | `RestDocumentSession` (single-user REST editing) is kept but unused by the SPA. | Useful fallback if WebSockets are blocked by a proxy; small. | Decide in phase 9 |
 | TD16 | Hocuspocus runs in the app process; horizontal scaling needs the Redis extension and sticky sessions. | Single instance by design for ~30 users. | If scaling out |
+| TD17 | Invitations are not e-mailed; the inviter tells the invitee. Re-authorisation after role changes drops all of that user's live connections (they reconnect automatically). | No SMTP dependency (decision D3); simple and correct. | Add SMTP if wanted |

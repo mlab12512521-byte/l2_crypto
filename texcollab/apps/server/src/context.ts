@@ -11,6 +11,7 @@ import { FileService } from './modules/files/service.js';
 import { ProjectAccess } from './modules/projects/access.js';
 import { ProjectService } from './modules/projects/service.js';
 import { limitsInBytes, SettingsService } from './modules/settings/service.js';
+import { SharingService } from './modules/sharing/service.js';
 import { UserService } from './modules/users/service.js';
 import { BlobStore } from './storage/blob-store.js';
 import { StoragePaths } from './storage/paths.js';
@@ -36,6 +37,7 @@ export interface AppContext {
   workers: WorkerPool;
   compile: CompileService;
   collab: CollabHub;
+  sharing: SharingService;
 }
 
 export function createContext(config: AppConfig, db: Db, log: Logger, logRing?: LogRingBuffer): AppContext {
@@ -67,7 +69,14 @@ export function createContext(config: AppConfig, db: Db, log: Logger, logRing?: 
   compile.onCompiled((projectId, result, userId) =>
     collab.notify(projectId, { type: 'compiled', buildId: result.buildId, status: result.status, by: userId }),
   );
+  const sharing = new SharingService(db);
+  sharing.setHooks({
+    // Re-authorise live connections: removed users lose access, changed roles get the new read/write mode.
+    accessChanged: (_projectId, userId) => collab.disconnectUser(userId),
+    membersChanged: (projectId) => collab.notify(projectId, { type: 'members' }),
+  });
   return {
+    sharing,
     collab,
     config,
     db,

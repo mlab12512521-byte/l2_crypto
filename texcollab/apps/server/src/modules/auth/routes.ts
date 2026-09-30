@@ -47,6 +47,7 @@ export async function authRoutes(app: FastifyInstance, ctx: AppContext): Promise
     // Prevent session fixation: any session presented with the login request is discarded.
     if (req.sessionId) await ctx.sessions.revoke(req.sessionId);
     const result = await ctx.auth.login(body.username, body.password, clientMeta(req));
+    await ctx.sharing.claimInvitations(result.user);
     setSessionCookie(reply, ctx, result.token, result.expiresAt);
     return { user: toCurrentUser(result.user), csrfToken: result.csrfToken };
   });
@@ -111,6 +112,7 @@ export async function authRoutes(app: FastifyInstance, ctx: AppContext): Promise
       password: body.password,
     });
     await audit(ctx.db, { actorId: user.id, action: 'auth.registered', ip: req.ip });
+    await ctx.sharing.claimInvitations(user);
     const session = await ctx.sessions.create(user.id, clientMeta(req));
     setSessionCookie(reply, ctx, session.token, session.expiresAt);
     return { user: toCurrentUser(user), csrfToken: session.csrfToken };

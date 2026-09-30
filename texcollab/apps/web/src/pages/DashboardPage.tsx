@@ -3,6 +3,8 @@ import type { ProjectSummary } from '@texcollab/shared';
 import { type FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { importProject, type ProjectFilter, type ProjectSort, projectsApi } from '../api/projects';
+import { sharingApi } from '../api/sharing';
+import { useAuth } from '../auth/AuthContext';
 import { ErrorBanner, Field, Modal, Spinner } from '../components/ui';
 import { relativeTime } from '../lib/time';
 
@@ -106,6 +108,12 @@ export function DashboardPage() {
 
 function ProjectRow({ project: p, onRename }: { project: ProjectSummary; onRename: () => void }) {
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const leave = useMutation({
+    mutationFn: () => sharingApi.remove(p.id, user!.id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: PROJECTS_KEY }),
+    onError: (e) => alert(e.message),
+  });
   const remove = useMutation({
     mutationFn: () => projectsApi.remove(p.id),
     onSuccess: () => qc.invalidateQueries({ queryKey: PROJECTS_KEY }),
@@ -132,6 +140,18 @@ function ProjectRow({ project: p, onRename }: { project: ProjectSummary; onRenam
           <a className="btn btn-small" href={projectsApi.exportUrl(p.id)} download>
             Download
           </a>
+          {p.role !== 'owner' && (
+            <button
+              className="btn btn-small"
+              type="button"
+              disabled={leave.isPending}
+              onClick={() => {
+                if (confirm(`Leave "${p.name}"? You will lose access until the owner shares it again.`)) leave.mutate();
+              }}
+            >
+              Leave
+            </button>
+          )}
           {p.role === 'owner' && (
             <>
               <button className="btn btn-small" type="button" onClick={onRename}>

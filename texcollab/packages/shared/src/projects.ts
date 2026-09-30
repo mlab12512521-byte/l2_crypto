@@ -221,3 +221,24 @@ export interface CompileResult {
   outputFiles: Array<{ name: string; size: number }>;
   diagnostics: CompileDiagnostic[];
 }
+
+export interface ProjectMember {
+  user: PublicUser;
+  role: ProjectRole;
+  addedAt: string;
+}
+
+export interface ProjectInvitation {
+  id: string;
+  email: string;
+  role: 'editor' | 'viewer';
+  invitedBy: PublicUser | null;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface MembersResponse {
+  members: ProjectMember[];
+  /** Only returned to the owner. */
+  invitations: ProjectInvitation[];
+}

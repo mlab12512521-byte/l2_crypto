@@ -17,6 +17,7 @@ import { compileRoutes } from './modules/compile/routes.js';
 import { fileRoutes } from './modules/files/routes.js';
 import { healthRoutes } from './modules/health/routes.js';
 import { projectRoutes } from './modules/projects/routes.js';
+import { sharingRoutes } from './modules/sharing/routes.js';
 
 /** Build the HTTP application. Does not listen; callers (server entry, tests) decide. */
 export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
@@ -45,6 +46,7 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
   await app.register(async (api) => projectRoutes(api, ctx), { prefix: '/api/projects' });
   await app.register(async (api) => fileRoutes(api, ctx), { prefix: '/api/projects' });
   await app.register(async (api) => compileRoutes(api, ctx), { prefix: '/api/projects' });
+  await app.register(async (api) => sharingRoutes(api, ctx), { prefix: '/api' });
 
   await registerSpa(app, ctx);
   return app;

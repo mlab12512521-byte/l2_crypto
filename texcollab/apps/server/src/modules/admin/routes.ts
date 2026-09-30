@@ -97,6 +97,7 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext): Promis
       ip: req.ip,
       details: { username: user.username, isAdmin: user.is_admin },
     });
+    await ctx.sharing.claimInvitations(user);
     reply.code(201);
     return toAdminUser(user);
   });

@@ -133,7 +133,18 @@ export interface ProjectChangesTable {
   last_change_at: Generated<Date>;
 }
 
+export interface ProjectInvitationsTable {
+  id: Generated<string>;
+  project_id: string;
+  email: string;
+  role: 'editor' | 'viewer';
+  invited_by: string | null;
+  created_at: Generated<Date>;
+  expires_at: Timestamp;
+}
+
 export interface Database {
+  project_invitations: ProjectInvitationsTable;
   project_changes: ProjectChangesTable;
   compile_builds: CompileBuildsTable;
   users: UsersTable;
