@@ -32,6 +32,8 @@ describe('metrics', () => {
     expect(text).toMatch(/texcollab_projects 1/);
     expect(text).toMatch(/texcollab_collab_connections 0/);
     expect(text).toContain('texcollab_process_cpu_seconds_total');
+    // No workers are configured in tests.
+    expect(text).not.toMatch(/texcollab_compile_worker_up\{/);
   });
 
   it('serves /metrics on its own port and nothing else', async () => {

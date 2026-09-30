@@ -4,9 +4,9 @@ A self-hosted, collaborative, browser-based LaTeX editor for small
 organisations: real-time co-editing, server-side sandboxed compilation, PDF
 preview, project history backed by Git, and local or LDAP accounts.
 
-> **Status:** under active development, built in phases (see
+> **Status:** all planned phases are implemented (see
 > [docs/architecture.md §14](docs/architecture.md#14-implementation-phases)).
-> Completed phases are listed below.
+> Known limitations are listed in the [technical debt log](docs/tech-debt.md).
 
 | Phase | Scope | State |
 |---|---|---|
@@ -18,8 +18,8 @@ preview, project history backed by Git, and local or LDAP accounts.
 | 6 | Sharing and permissions | ✅ done |
 | 7 | Git history, automatic versions, external remotes | ✅ done |
 | 8 | LDAP | ✅ done |
-| 9 | Hardening | planned |
-| 10 | Production deployment | planned |
+| 9 | Hardening | ✅ done |
+| 10 | Production deployment | ✅ done |
 
 ## Repository layout
 
@@ -38,15 +38,21 @@ compose.dev.yml  PostgreSQL for local development
 
 ## Quick start (Docker Compose)
 
+Local trial on one machine (plain HTTP on `http://localhost:3000`):
+
 ```sh
-cp .env.example .env            # set PUBLIC_URL, the initial admin, DOCKER_GID
+cp .env.example .env            # set PUBLIC_URL=http://localhost:3000, TRUST_PROXY_HOPS=0,
+                                # DOCKER_GID and the initial admin
 scripts/init-secrets.sh         # generates ./secrets/*
 docker compose --profile build build texlive   # TeX Live sandbox image (large, ~9 GB)
 docker compose up -d --build
 ```
 
-Open `PUBLIC_URL` (by default the app listens on `127.0.0.1:3000`), sign in
-with the initial admin, and choose a new password when prompted.
+Open `PUBLIC_URL` — it must be exactly the address in the browser — sign
+in with the initial admin, and choose a new password when prompted.
+
+For production (HTTPS via Caddy, backups, upgrades, monitoring) follow the
+[operations guide](docs/operations.md).
 
 ## Documentation
 
@@ -60,4 +66,5 @@ with the initial admin, and choose a new password when prompted.
 - [Sharing and permissions](docs/sharing.md)
 - [History, versions and Git](docs/git-integration.md)
 - [Directory sign-in (LDAP)](docs/ldap.md)
+- [Operations: deployment, backups, upgrades, monitoring](docs/operations.md)
 - [Technical debt log](docs/tech-debt.md)

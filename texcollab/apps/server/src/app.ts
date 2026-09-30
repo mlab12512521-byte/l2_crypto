@@ -137,7 +137,7 @@ async function registerSpa(app: FastifyInstance, ctx: AppContext): Promise<void>
   }
   app.setNotFoundHandler((req, reply) => {
     const isApi = req.url.startsWith('/api/') || req.url === '/api';
-    if (!isApi && indexExists && req.method === 'GET') {
+    if (!isApi && indexExists && (req.method === 'GET' || req.method === 'HEAD')) {
       // Client-side routes of the SPA.
       return reply.header('Cache-Control', 'no-cache').sendFile('index.html');
     }

@@ -1,0 +1,47 @@
+# Reverse proxy for TeXCollab (used by compose.prod.yml).
+# Configured through environment variables in .env:
+#   TEXCOLLAB_DOMAIN   host name users open, e.g. latex.example.org
+#   TEXCOLLAB_TLS      how to get a certificate (see docs/operations.md):
+#                        (empty)                          automatic Let's Encrypt (public DNS, ports 80/443 reachable)
+#                        tls you@example.org              the same, with a contact e-mail
+#                        tls internal                     Caddy's own CA (install its root certificate on clients)
+#                        tls /certs/cert.pem /certs/key.pem   your own certificate (put files in deploy/certs/)
+#   TEXCOLLAB_MAX_BODY  largest request body (uploads, ZIP imports); default 1100MB
+
+{
+	# Do not phone home, no admin API on the network.
+	admin off
+}
+
+{$TEXCOLLAB_DOMAIN} {
+	{$TEXCOLLAB_TLS}
+
+	request_body {
+		max_size {$TEXCOLLAB_MAX_BODY:1100MB}
+	}
+
+	encode zstd gzip
+
+	header {
+		-Server
+		-Via
+	}
+
+	# WebSocket upgrades (/collab) are proxied automatically. Caddy replaces any
+	# client-supplied X-Forwarded-For, so the app trusts exactly one hop.
+	reverse_proxy app:3000 {
+		health_uri /healthz
+		health_interval 30s
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
+
+# Liveness endpoint for the container health check (not published).
+http://127.0.0.1:8081 {
+	bind 127.0.0.1
+	respond "ok" 200
+}

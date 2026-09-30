@@ -1,0 +1,39 @@
+# Optional monitoring overlay: Prometheus with TeXCollab alert rules.
+#   COMPOSE_FILE=compose.yml:compose.prod.yml:compose.monitoring.yml
+# Prometheus UI: http://127.0.0.1:9090 on the server (use an SSH tunnel).
+# See docs/operations.md#monitoring.
+
+services:
+  prometheus:
+    image: ${PROMETHEUS_IMAGE:-prom/prometheus:v3.5.0}
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      - backend
+      - monitoring
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+volumes:
+  prometheus-data:
+
+networks:
+  # Lets the UI port be published (the backend network is internal).
+  monitoring:

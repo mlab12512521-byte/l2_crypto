@@ -1,0 +1,53 @@
+groups:
+  - name: texcollab
+    rules:
+      - alert: TeXCollabDown
+        expr: up{job="texcollab"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: TeXCollab is not answering metrics scrapes (app down or restarting)
+
+      - alert: CompileWorkerDown
+        expr: texcollab_compile_worker_up == 0
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "Compile worker {{ $labels.worker }} is unreachable; nobody can compile"
+
+      - alert: CompileBacklog
+        expr: sum(texcollab_compile_worker_queued) > 10
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: Compilations are queueing; consider more worker concurrency or CPU
+
+      - alert: CompileFailuresBySystem
+        # "error" means an infrastructure problem (worker/sandbox), not a LaTeX error.
+        expr: increase(texcollab_compilations_total{status="error"}[30m]) > 5
+        labels: { severity: warning }
+        annotations:
+          summary: Several compilations failed for system reasons in the last 30 minutes
+
+      - alert: HighServerErrorRate
+        expr: |
+          sum(rate(texcollab_http_requests_total{status=~"5.."}[5m]))
+            / clamp_min(sum(rate(texcollab_http_requests_total[5m])), 1e-9) > 0.05
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: More than 5% of requests fail with server errors
+
+      - alert: DatabasePoolSaturated
+        expr: texcollab_db_pool_connections{state="waiting"} > 5
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: Requests are waiting for database connections (raise DATABASE_POOL_SIZE or investigate slow queries)
+
+      - alert: HighMemory
+        expr: texcollab_process_resident_memory_bytes > 1.5e9
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: The app process uses more than 1.5 GB of memory

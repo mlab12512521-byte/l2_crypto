@@ -1,0 +1,2 @@
+# Put cert.pem and key.pem here when using your own certificate
+# (TEXCOLLAB_TLS=tls /certs/cert.pem /certs/key.pem). Never commit them.

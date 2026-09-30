@@ -18,6 +18,11 @@ RUN export TEXMFVAR="$(kpsewhich -var-value TEXMFSYSVAR)" \
  && (luaotfload-tool --update --force >/dev/null 2>&1 || true) \
  && (mtxrun --generate >/dev/null 2>&1 || true)
 
+# The same for fontconfig (used by xelatex): cache every configured font
+# directory, including TeX Live's, in the system cache. Without this each
+# sandbox rebuilds a per-user cache, costing several seconds per compile.
+RUN fc-cache --system-only --really-force >/dev/null 2>&1 || fc-cache -sf
+
 # Biber is a PAR-packed executable that unpacks itself before running. Unpack
 # it once here; at runtime texcollab-biber copies the cache into the /par
 # tmpfs (see biber-wrapper.sh) instead of unpacking from scratch.

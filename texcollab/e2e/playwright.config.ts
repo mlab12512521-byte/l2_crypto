@@ -6,6 +6,7 @@ import { defineConfig, devices } from '@playwright/test';
  *   E2E_ADMIN_USERNAME / E2E_ADMIN_PASSWORD   an administrator account on that instance
  *   E2E_SKIP_COMPILE=1  skip checks that need a compile worker
  *   E2E_CHROMIUM        optional path to a Chromium binary
+ *   E2E_IGNORE_HTTPS_ERRORS=1  accept an untrusted certificate (e.g. Caddy's internal CA)
  */
 export default defineConfig({
   testDir: './tests',
@@ -18,6 +19,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:3001',
     trace: 'retain-on-failure',
+    ignoreHTTPSErrors: process.env.E2E_IGNORE_HTTPS_ERRORS === '1',
     screenshot: 'only-on-failure',
     viewport: { width: 1400, height: 850 },
     ...(process.env.E2E_CHROMIUM ? { launchOptions: { executablePath: process.env.E2E_CHROMIUM } } : {}),

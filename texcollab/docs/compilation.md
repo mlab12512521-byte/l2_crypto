@@ -77,7 +77,8 @@ their own maximums from their environment (`MAX_TIMEOUT_SECONDS`,
 
 `docker/texlive/Dockerfile` extends the official `texlive/texlive` image
 (scheme-full by default, ~9 GB unpacked) with the sandbox entrypoint, the
-trusted latexmk configuration, a prebuilt LuaTeX font database and a
+trusted latexmk configuration, prebuilt LuaTeX and fontconfig font caches (so
+lualatex and xelatex do not rescan all fonts in every sandbox) and a
 pre-unpacked Biber runtime. Build it with
 
 ```sh

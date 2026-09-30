@@ -95,7 +95,11 @@ export function createContext(config: AppConfig, db: Db, log: Logger, logRing?: 
     accessChanged: (_projectId, userId) => collab.disconnectUser(userId),
     membersChanged: (projectId) => collab.notify(projectId, { type: 'members' }),
   });
-  const metrics = new Metrics(db, () => collab.stats());
+  const metrics = new Metrics(
+    db,
+    () => collab.stats(),
+    () => workers.health(),
+  );
   compile.onCompiled((_projectId, result) => metrics.observeCompile(result.status, result.durationMs / 1000));
   const ldap = new LdapService(db, log, config.appSecret);
   auth.setExternalAuthenticator(ldap);

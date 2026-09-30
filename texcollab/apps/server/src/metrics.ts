@@ -15,7 +15,11 @@ export class Metrics {
   private readonly compilations: client.Counter<'status'>;
   private readonly compileDuration: client.Histogram<'status'>;
 
-  constructor(db: Db, collab: () => { connections: number; users: number; documents: number }) {
+  constructor(
+    db: Db,
+    collab: () => { connections: number; users: number; documents: number },
+    workers: () => Promise<Array<{ url: string; ok: boolean; running?: number; queued?: number }>>,
+  ) {
     const registers = [this.registry];
     client.collectDefaultMetrics({ register: this.registry, prefix: 'texcollab_' });
     this.httpRequests = new client.Counter({
@@ -66,6 +70,44 @@ export class Metrics {
       registers,
       collect() {
         this.set(collab().users);
+      },
+    });
+    // One health request per worker and scrape; shared by the three gauges below.
+    let pending: ReturnType<typeof workers> | null = null;
+    const workerHealth = () => {
+      pending ??= workers().finally(() => {
+        pending = null;
+      });
+      return pending;
+    };
+    new client.Gauge({
+      name: 'texcollab_compile_worker_up',
+      help: 'Whether a compile worker answers its health check (1) or not (0)',
+      labelNames: ['worker'],
+      registers,
+      async collect() {
+        this.reset();
+        for (const w of await workerHealth()) this.set({ worker: w.url }, w.ok ? 1 : 0);
+      },
+    });
+    new client.Gauge({
+      name: 'texcollab_compile_worker_running',
+      help: 'Compilations running on a worker',
+      labelNames: ['worker'],
+      registers,
+      async collect() {
+        this.reset();
+        for (const w of await workerHealth()) if (w.ok) this.set({ worker: w.url }, w.running ?? 0);
+      },
+    });
+    new client.Gauge({
+      name: 'texcollab_compile_worker_queued',
+      help: 'Compilations waiting on a worker',
+      labelNames: ['worker'],
+      registers,
+      async collect() {
+        this.reset();
+        for (const w of await workerHealth()) if (w.ok) this.set({ worker: w.url }, w.queued ?? 0);
       },
     });
     new client.Gauge({

@@ -13,7 +13,11 @@ export class Api {
   ) {}
 
   static async login(username: string, password: string): Promise<Api> {
-    const ctx = await request.newContext({ baseURL: BASE_URL, extraHTTPHeaders: { origin: BASE_URL } });
+    const ctx = await request.newContext({
+      baseURL: BASE_URL,
+      extraHTTPHeaders: { origin: BASE_URL },
+      ignoreHTTPSErrors: process.env.E2E_IGNORE_HTTPS_ERRORS === '1',
+    });
     const res = await ctx.post('/api/auth/login', { headers: { 'x-csrf-token': '1' }, data: { username, password } });
     if (!res.ok()) throw new Error(`API login as ${username} failed: ${res.status()} ${await res.text()}`);
     return new Api(ctx, (await res.json()).csrfToken);

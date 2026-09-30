@@ -160,3 +160,28 @@ replayed and malformed requests rejected.
   encrypted with AES-256-GCM using keys derived from `APP_SECRET` (HKDF, one
   key per purpose) and are write-only in the admin UI.
 * Logs redact passwords, tokens, cookies and CSRF headers.
+
+## 7. Deployment
+
+* **TLS termination** by Caddy (`compose.prod.yml`); HTTP redirects to
+  HTTPS; the app sends HSTS when `PUBLIC_URL` is `https`. The app container
+  publishes no port in production; Caddy replaces client-supplied
+  `X-Forwarded-For`, and the app trusts exactly one proxy hop.
+* **Networks:** PostgreSQL and the compile worker are on an internal
+  network without a route to the outside. Only the app (Git remotes, LDAP)
+  and Caddy (certificates) have outbound access. Metrics are served on a
+  separate port that is never published.
+* **Containers** run read-only, as non-root users (except PostgreSQL's own
+  entrypoint and Caddy's port binding capability), with all capabilities
+  dropped and `no-new-privileges`.
+* **Docker socket:** only the compile worker mounts it, because it must
+  start sandbox containers. Whoever controls the worker controls the host,
+  so the worker holds no application secrets besides the request-signing
+  key, has no database or storage access, and only accepts HMAC-signed,
+  replay-protected requests from the app. Optional gVisor (`runsc`) adds a
+  kernel boundary around each sandbox.
+* **Backups** contain everything, including `APP_SECRET`; they are created
+  with owner-only permissions and must be stored accordingly
+  ([operations.md](operations.md#3-backups)).
+* **Request size limits:** Caddy caps bodies (default 1100 MB); the app
+  enforces per-file, per-project and JSON limits itself.
